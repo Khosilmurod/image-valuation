@@ -37,6 +37,10 @@ class ImageValuationExperiment {
         this.sessionId = `ses_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         this.sessionStartTime = new Date().toISOString();
         
+        // Image preloading
+        this.preloadedImages = {};
+        this.imagesLoaded = false;
+        
         console.log(`Experiment initialized with session ID: ${this.sessionId}`);
     }
 
@@ -237,5 +241,143 @@ class ImageValuationExperiment {
                     </div>
                 </div>
             </div>`;
+    }
+
+    async preloadImages() {
+        // Show loading screen
+        this.showLoadingScreen();
+        
+        try {
+            console.log('Starting image preloading...');
+            
+            // Collect all unique image paths that will be used in the experiment
+            const imagesToPreload = new Set();
+            
+            // Add Phase 1 images
+            this.phase1Images.forEach(img => {
+                imagesToPreload.add(`images/old-images/${img.filename}`);
+            });
+            
+            // Add Phase 2 images
+            this.phase2Images.forEach(img => {
+                const folder = img.isOld ? 'old-images' : 'new-images';
+                imagesToPreload.add(`images/${folder}/${img.filename}`);
+            });
+            
+            const imagePathsArray = Array.from(imagesToPreload);
+            const totalImages = imagePathsArray.length;
+            let loadedCount = 0;
+            
+            console.log(`Preloading ${totalImages} images...`);
+            
+            // Create promises for all image loads
+            const loadPromises = imagePathsArray.map((imagePath, index) => {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        this.preloadedImages[imagePath] = img;
+                        loadedCount++;
+                        
+                        // Update progress
+                        const progress = Math.round((loadedCount / totalImages) * 100);
+                        this.updateLoadingProgress(progress, loadedCount, totalImages);
+                        
+                        resolve(img);
+                    };
+                    
+                    img.onerror = () => {
+                        console.warn(`Failed to load image: ${imagePath}`);
+                        loadedCount++;
+                        
+                        // Still update progress even for failed images
+                        const progress = Math.round((loadedCount / totalImages) * 100);
+                        this.updateLoadingProgress(progress, loadedCount, totalImages);
+                        
+                        resolve(null); // Resolve with null instead of rejecting
+                    };
+                    
+                    img.src = imagePath;
+                });
+            });
+            
+            // Wait for all images to load (or fail)
+            await Promise.all(loadPromises);
+            
+            this.imagesLoaded = true;
+            console.log(`Image preloading completed. ${Object.keys(this.preloadedImages).length} images loaded successfully.`);
+            
+            // Show completion message briefly before continuing
+            this.showLoadingComplete();
+            
+            // Wait a moment to show completion, then proceed
+            setTimeout(() => {
+                this.showPhase1Instructions();
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error during image preloading:', error);
+            this.showError('Failed to load images. Please refresh the page and try again.');
+        }
+    }
+
+    showLoadingScreen() {
+        document.body.innerHTML = `
+            <div class="main-container">
+                <div class="instructions">
+                    <h2>Loading Images</h2>
+                    <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
+                        <p style="font-size: 18px; margin-bottom: 1rem;">
+                            Please wait while we load the experiment images...
+                        </p>
+                        <div style="width: 100%; background-color: #e5e5e5; border-radius: 10px; overflow: hidden; margin: 1rem 0;">
+                            <div id="progressBar" style="width: 0%; height: 20px; background-color: #1976d2; transition: width 0.3s ease-in-out;"></div>
+                        </div>
+                        <div id="progressText" style="text-align: center; color: #666; font-size: 14px;">
+                            Loading images... 0% (0/0)
+                        </div>
+                    </div>
+                    <p style="color: #888; font-size: 14px;">This may take a moment depending on your internet connection.</p>
+                </div>
+            </div>`;
+    }
+
+    updateLoadingProgress(progress, loaded, total) {
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        if (progressBar) {
+            progressBar.style.width = `${progress}%`;
+        }
+        
+        if (progressText) {
+            progressText.textContent = `Loading images... ${progress}% (${loaded}/${total})`;
+        }
+    }
+
+    showLoadingComplete() {
+        const progressText = document.getElementById('progressText');
+        if (progressText) {
+            progressText.textContent = '✓ All images loaded successfully!';
+            progressText.style.color = '#2e7d32';
+            progressText.style.fontWeight = 'bold';
+        }
+    }
+
+    // Method to get preloaded image or fallback to regular loading
+    getImageElement(imagePath, alt = '', style = '') {
+        if (this.preloadedImages[imagePath]) {
+            // Clone the preloaded image
+            const img = this.preloadedImages[imagePath].cloneNode();
+            img.alt = alt;
+            if (style) {
+                img.style.cssText = style;
+            }
+            return img.outerHTML;
+        } else {
+            // Fallback to regular image loading with error handling
+            return `<img src="${imagePath}" alt="${alt}" style="${style}" 
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4gPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPiA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkltYWdlIEVycm9yPC90ZXh0PiA8L3N2Zz4=';">`;
+        }
     }
 } 

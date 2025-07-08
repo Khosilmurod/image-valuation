@@ -49,14 +49,16 @@ Object.assign(ImageValuationExperiment.prototype, {
         const subjectId = subjectIdInput.value.trim();
         
         if (!subjectId) {
-            alert('Please enter a valid participant ID');
+            alert('Please enter your participant ID to continue.');
             subjectIdInput.focus();
             return;
         }
         
         this.subjectId = subjectId;
         console.log(`Subject ID set to: ${this.subjectId}`);
-        this.showPhase1Instructions();
+        
+        // Start image preloading instead of going directly to Phase 1 instructions
+        this.preloadImages();
     },
 
     showPhase1Instructions() {

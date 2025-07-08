@@ -40,19 +40,23 @@ Object.assign(ImageValuationExperiment.prototype, {
             // Calculate image number (exclude attention checks)
             const imageNumber = this.phase1Timeline.slice(0, this.phase1TimelineIndex + 1).filter(s => s.type === 'image').length;
             const totalImages = this.phase1Images.length;
-            // Show image
+            
+            // Get image size and create image element
             const imageSize = this.experimentConfig.imageSizes[image.size];
+            const imagePath = `images/old-images/${image.filename}`;
+            const imageStyle = `max-width: ${imageSize}; max-height: ${imageSize}; width: auto; height: auto; display: block; margin: 0 auto; border-radius: 0; box-shadow: none; background: none;`;
+            const imageElement = this.getImageElement(imagePath, `Food image ${image.id}`, imageStyle);
+            
+            // Show image
             document.body.innerHTML = `
                 <div class="main-container" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
                     <div style="text-align: center;">
-                        <img src="images/old-images/${image.filename}"
-                             alt="Food image ${image.id}"
-                             style="max-width: ${imageSize}; max-height: ${imageSize}; width: auto; height: auto; display: block; margin: 0 auto; border-radius: 0; box-shadow: none; background: none;"
-                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4gPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPiA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkZvb2QgJHtpbWFnZS5pZH08L3RleHQ+IDwvc3ZnPg==';">
-                        <div style="margin-top: 18px; font-size: 17px; color: #444; font-family: Arial, sans-serif; letter-spacing: 0.01em;">Actual size: 10 cm × 10 cm | 300 kcal</div>
+                        ${imageElement}
+                        <div style="margin-top: 18px; font-size: 17px; color: #444; font-family: Arial, sans-serif; letter-spacing: 0.01em;">Actual size: 10 cm × 10 cm | 300 kcal</div>
                         <div style="margin-top: 12px; font-size: 16px; color: #888;">Image ${imageNumber} of ${totalImages}</div>
                     </div>
                 </div>`;
+                
             setTimeout(() => {
                 this.recordPhase1ImageData(image);
                 this.phase1TimelineIndex++;
@@ -207,17 +211,21 @@ Object.assign(ImageValuationExperiment.prototype, {
             this.sliderInteracted = false;
             const imageSize = this.experimentConfig.imageSizes[image.size];
             const imageFolder = image.isOld ? 'old-images' : 'new-images';
+            
             // Calculate image number (exclude attention checks)
             const imageNumber = this.phase2Timeline.slice(0, this.phase2TimelineIndex + 1).filter(s => s.type === 'image').length;
             const totalImages = this.phase2Images.length;
+            
+            // Get preloaded image element
+            const imagePath = `images/${imageFolder}/${image.filename}`;
+            const imageStyle = `max-width: ${imageSize}; max-height: ${imageSize};`;
+            const imageElement = this.getImageElement(imagePath, `Food image ${image.id}`, imageStyle);
+            
             document.body.innerHTML = `
                 <div class="main-container" style="display: flex; flex-direction: column; align-items: center; min-height: 100vh;">
                     <div class="instructions" style="width: 100%; max-width: 600px; margin: 0 auto;">
                         <div style="text-align: center; margin-bottom: 32px;">
-                            <img src="images/${imageFolder}/${image.filename}"
-                                 alt="Food image ${image.id}"
-                                 style="max-width: ${imageSize}; max-height: ${imageSize}"
-                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4gPHJlY3Qgd2lkdD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPiA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkZvb2QgJHtpbWFnZS5pZH08L3RleHQ+IDwvc3ZnPg==';">
+                            ${imageElement}
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 36px; align-items: center;">
                             <!-- Memory Question -->
@@ -279,6 +287,9 @@ Object.assign(ImageValuationExperiment.prototype, {
                         </div>
                     </div>
                 </div>`;
+                
+            // Set initial confidence value
+            this.currentConfidence = 50;
         } else if (step.type === 'attention') {
             this.showPhase2AttentionCheck(step.attentionIndex);
         }
