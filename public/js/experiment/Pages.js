@@ -239,6 +239,33 @@ Object.assign(ImageValuationExperiment.prototype, {
             eatingCapacity: parseInt(capacityValue)
         };
 
+        // Add final questionnaire row to csvData (22-column format matching CSV headers)
+        const row = [
+            this.subjectId || 'unknown',       // participant_id
+            'final_questionnaire',             // entry_type
+            '',                                // phase
+            '',                                // image_id
+            '',                                // filename
+            '',                                // image_size
+            '',                                // image_type
+            '',                                // memory_response
+            '',                                // payment_response
+            '',                                // confidence
+            '',                                // response_time
+            '',                                // attention_check_id
+            '',                                // attention_response
+            '',                                // attention_correct
+            this.finalAnswers.snackPreference, // snack_preference
+            this.finalAnswers.desireToEat,     // desire_to_eat
+            this.finalAnswers.hunger,          // hunger
+            this.finalAnswers.fullness,        // fullness
+            this.finalAnswers.satisfaction,    // satisfaction
+            this.finalAnswers.eatingCapacity,  // eating_capacity
+            this.sessionId || '',              // session_id
+            new Date().toISOString()           // timestamp
+        ].join(',') + '\n';
+        this.csvData.push(row);
+
         console.log('Final answers collected:', this.finalAnswers);
         
         // Add some visual feedback

@@ -36,17 +36,21 @@ Object.assign(ImageValuationExperiment.prototype, {
         const step = this.phase1Timeline[this.phase1TimelineIndex];
         if (step.type === 'image') {
             const image = step.image;
-        this.imageDisplayStartTime = Date.now();
+            this.imageDisplayStartTime = Date.now();
+            // Calculate image number (exclude attention checks)
+            const imageNumber = this.phase1Timeline.slice(0, this.phase1TimelineIndex + 1).filter(s => s.type === 'image').length;
+            const totalImages = this.phase1Images.length;
             // Show image
             const imageSize = this.experimentConfig.imageSizes[image.size];
-        document.body.innerHTML = `
-            <div class="main-container" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
-                <div style="text-align: center;">
+            document.body.innerHTML = `
+                <div class="main-container" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+                    <div style="text-align: center;">
                         <img src="images/old-images/${image.filename}"
                              alt="Food image ${image.id}"
                              style="max-width: ${imageSize}; max-height: ${imageSize}; width: auto; height: auto; display: block; margin: 0 auto; border-radius: 0; box-shadow: none; background: none;"
                              onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4gPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPiA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkZvb2QgJHtpbWFnZS5pZH08L3RleHQ+IDwvc3ZnPg==';">
                         <div style="margin-top: 18px; font-size: 17px; color: #444; font-family: Arial, sans-serif; letter-spacing: 0.01em;">Actual size: 10 cm × 10 cm | 300 kcal</div>
+                        <div style="margin-top: 12px; font-size: 16px; color: #888;">Image ${imageNumber} of ${totalImages}</div>
                     </div>
                 </div>`;
             setTimeout(() => {
@@ -162,6 +166,7 @@ Object.assign(ImageValuationExperiment.prototype, {
         ].join(',') + '\n';
         
         this.csvData.push(phase1Row);
+        console.log('csvData after phase1 push:', this.csvData);
         console.log(`Recorded Phase 1 image data: ${image.filename} (${image.size}) - ${displayDuration}ms`);
     },
 
@@ -202,14 +207,17 @@ Object.assign(ImageValuationExperiment.prototype, {
             this.sliderInteracted = false;
             const imageSize = this.experimentConfig.imageSizes[image.size];
             const imageFolder = image.isOld ? 'old-images' : 'new-images';
+            // Calculate image number (exclude attention checks)
+            const imageNumber = this.phase2Timeline.slice(0, this.phase2TimelineIndex + 1).filter(s => s.type === 'image').length;
+            const totalImages = this.phase2Images.length;
             document.body.innerHTML = `
                 <div class="main-container" style="display: flex; flex-direction: column; align-items: center; min-height: 100vh;">
                     <div class="instructions" style="width: 100%; max-width: 600px; margin: 0 auto;">
                         <div style="text-align: center; margin-bottom: 32px;">
                             <img src="images/${imageFolder}/${image.filename}"
                                  alt="Food image ${image.id}"
-                                 style="max-width: ${imageSize}; max-height: ${imageSize}; width: auto; height: auto; display: block; margin: 0 auto; border-radius: 0; box-shadow: none; background: none;"
-                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4gPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPiA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkZvb2QgJHtpbWFnZS5pZH08L3RleHQ+IDwvc3ZnPg==';">
+                                 style="max-width: ${imageSize}; max-height: ${imageSize}"
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4gPHJlY3Qgd2lkdD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPiA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkZvb2QgJHtpbWFnZS5pZH08L3RleHQ+IDwvc3ZnPg==';">
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 36px; align-items: center;">
                             <!-- Memory Question -->
@@ -263,7 +271,7 @@ Object.assign(ImageValuationExperiment.prototype, {
                         </div>
                         <div style="text-align: center; margin-top: 32px;">
                             <small style="color: #666; display: block; margin-bottom: 10px; font-size: 15px;">
-                                Image ${this.phase2TimelineIndex + 1} of ${this.phase2Timeline.filter(s => s.type === 'image').length}
+                                Image ${imageNumber} of ${totalImages}
                             </small>
                             <button onclick="experiment.submitPhase2Response()" class="next-button" id="submitBtn">
                                 Continue
@@ -396,6 +404,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             new Date().toISOString()          // timestamp
         ].join(',') + '\n';
         this.csvData.push(csvRow);
+        console.log('csvData after phase2 push:', this.csvData);
         this.phase2TimelineIndex++;
         this.showNextPhase2Step();
     },

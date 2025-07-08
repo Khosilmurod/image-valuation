@@ -26,10 +26,9 @@ Object.assign(ImageValuationExperiment.prototype, {
             </div>`;
 
         try {
-            // Prepare comprehensive data for the Image Valuation experiment
-            const comprehensiveData = this.prepareComprehensiveData();
-            console.log('Filtered allData to be saved:', comprehensiveData); // DEBUG LOG
-            
+            // Use the original csvData for separation
+            const comprehensiveData = this.csvData;
+            console.log('csvData to be separated:', comprehensiveData); // DEBUG LOG
             console.log(`Attempting to save ${comprehensiveData.length} data entries for subject ${this.subjectId}`);
             console.log('Sample data entry:', comprehensiveData[0]);
 
@@ -48,7 +47,7 @@ Object.assign(ImageValuationExperiment.prototype, {
                                     <small>Participant ID: ${this.subjectId}</small><br>
                                     <small>Phase 1 data: ${saveResults.phase1Count} entries</small><br>
                                     <small>Phase 2 data: ${saveResults.phase2Count} entries</small><br>
-                                    <small>Final questionnaire: ${saveResults.finalCount} entries</small>
+                                    <small>Final questionnaire: ${saveResults.finalCount} entry</small>
                                 </div>
                             </div>
                             <p>You may now close this window.</p>
@@ -65,7 +64,7 @@ Object.assign(ImageValuationExperiment.prototype, {
 
     async saveDataToCollections(allData) {
         try {
-            // Separate data by phase/collection using column count and phase column
+            // Separate data by phase/collection using entry_type or column count
             const phase1Data = [];
             const phase2Data = [];
             const finalData = [];
@@ -73,16 +72,16 @@ Object.assign(ImageValuationExperiment.prototype, {
             allData.forEach(row => {
                 if (typeof row === 'string' && row.trim()) {
                     const columns = row.split(',');
-                    // Phase 1: 8 columns, phase column is 1
-                    if (columns.length === 8 && columns[1] === '1') {
+                    // Phase 1: entry_type is 'phase1_image' OR attention_check from phase 1
+                    if (columns[1] === 'phase1_image' || (columns[1] === 'attention_check' && columns[2] === '1')) {
                         phase1Data.push(row);
                     }
-                    // Phase 2: 12 columns, phase column is 2
-                    else if (columns.length === 12 && columns[1] === '2') {
+                    // Phase 2: entry_type is 'phase2_response' OR attention_check from phase 2
+                    else if (columns[1] === 'phase2_response' || (columns[1] === 'attention_check' && columns[2] === '2')) {
                         phase2Data.push(row);
                     }
-                    // Final: 8 columns, no phase column, but snack_preference present (column[1])
-                    else if (columns.length === 8 && columns[1] && columns[1] !== '1' && columns[1] !== '2') {
+                    // Final: entry_type is 'final_questionnaire'
+                    else if (columns[1] === 'final_questionnaire') {
                         finalData.push(row);
                     }
                 }
@@ -94,13 +93,51 @@ Object.assign(ImageValuationExperiment.prototype, {
                 finalCount: finalData.length
             });
 
-            // Save to each collection separately
+            // Save to each collection separately, filtering columns before sending
             const savePromises = [];
+
+            // Helper to filter columns for each collection
+            function filterPhase1(row) {
+                const columns = row.split(',');
+                return [
+                    columns[0], // participant_id
+                    columns[2], // phase
+                    columns[3], // image_id
+                    columns[4], // filename
+                    columns[5], // image_size
+                    columns[10], // response_time
+                    columns[11], // attention_check_id
+                    columns[12], // attention_response
+                    columns[13], // attention_correct
+                    columns[20], // session_id
+                    columns[21]  // timestamp
+                ].join(',') + '\n';
+            }
+            function filterPhase2(row) {
+                const columns = row.split(',');
+                return [
+                    columns[0], // participant_id
+                    columns[2], // phase
+                    columns[3], // image_id
+                    columns[4], // filename
+                    columns[5], // image_size
+                    columns[6], // image_type
+                    columns[7], // memory_response
+                    columns[8], // payment_response
+                    columns[9], // confidence
+                    columns[10], // response_time
+                    columns[11], // attention_check_id
+                    columns[12], // attention_response
+                    columns[13], // attention_correct
+                    columns[20], // session_id
+                    columns[21]  // timestamp
+                ].join(',') + '\n';
+            }
 
             // Save Phase 1 data
             if (phase1Data.length > 0) {
                 savePromises.push(
-                    this.saveToCollection('phase1', phase1Data)
+                    this.saveToCollection('phase1', phase1Data.map(filterPhase1))
                         .then(() => ({ collection: 'phase1', success: true, count: phase1Data.length }))
                         .catch(err => ({ collection: 'phase1', success: false, error: err.message }))
                 );
@@ -109,13 +146,13 @@ Object.assign(ImageValuationExperiment.prototype, {
             // Save Phase 2 data
             if (phase2Data.length > 0) {
                 savePromises.push(
-                    this.saveToCollection('phase2', phase2Data)
+                    this.saveToCollection('phase2', phase2Data.map(filterPhase2))
                         .then(() => ({ collection: 'phase2', success: true, count: phase2Data.length }))
                         .catch(err => ({ collection: 'phase2', success: false, error: err.message }))
                 );
             }
 
-            // Save final questionnaire data
+            // Save final questionnaire data (send as-is, already 8 columns)
             if (finalData.length > 0) {
                 savePromises.push(
                     this.saveToCollection('final_questionnaire', finalData)

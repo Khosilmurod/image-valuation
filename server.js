@@ -26,10 +26,10 @@ try {
 // Add this near the top of the file, after serverConfig is loaded
 const allowedFields = {
     phase1: [
-        "participant_id", "phase", "image_id", "filename", "image_size", "response_time", "session_id", "timestamp"
+        "participant_id", "phase", "image_id", "filename", "image_size", "response_time", "attention_check_id", "attention_response", "attention_correct", "session_id", "timestamp"
     ],
     phase2: [
-        "participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"
+        "participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "attention_check_id", "attention_response", "attention_correct", "session_id", "timestamp"
     ],
     final_questionnaire: [
         "participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"
@@ -390,6 +390,9 @@ function parseCSVRow(row) {
 // Endpoint to save data
 app.post('/save', async (req, res) => {
     const { data, collection } = req.body;
+    console.log('--- /save endpoint called ---');
+    console.log('Request collection:', collection);
+    console.log('Request data (first 500 chars):', data ? data.substring(0, 500) : 'NO DATA');
     if (!data) {
         return res.status(400).send('No data received.');
     }
@@ -401,7 +404,7 @@ app.post('/save', async (req, res) => {
             collectionName = serverConfig.database.phase1_collection;
         } else if (collection === 'phase2') {
             collectionName = serverConfig.database.phase2_collection;
-        } else if (collection === 'final_responses') {
+        } else if (collection === 'final_questionnaire') {
             collectionName = serverConfig.database.final_collection;
         } else {
             // Default to phase2 for backward compatibility
@@ -513,12 +516,14 @@ app.post('/save', async (req, res) => {
                 return obj;
             });
         } else if (collectionName === serverConfig.database.final_collection) {
+            // For final_questionnaire, extract relevant fields from 22-column format
             filteredEntries = entries.map(e => {
                 const obj = {};
                 allowedFields.final_questionnaire.forEach(f => { obj[f] = e[f]; });
                 obj.server_timestamp = new Date();
                 return obj;
             });
+            console.log('Filtered final_questionnaire entries:', filteredEntries);
         }
         await resultsCollection.insertMany(filteredEntries);
         
