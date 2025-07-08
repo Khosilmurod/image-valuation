@@ -1,38 +1,86 @@
 {
+    "serverConfig": {
+        "database": {
+            "name": "image_valuation",
+            "phase1_collection": "phase1",
+            "phase2_collection": "phase2",
+            "final_collection": "final_questionaire"
+        },
+        "csv": {
+            "filename_prefix": "image-valuation",
+            "headers": [
+                "participant_id", "entry_type", "phase", "image_id", "filename", 
+                "image_size", "image_type", "memory_response", "payment_response", 
+                "confidence", "response_time", "attention_check_id", "attention_response", 
+                "attention_correct", "snack_preference", "desire_to_eat", "hunger", 
+                "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"
+            ]
+        }
+    },
     "experimentConfig": {
-        "practiceTrials": 2,
-        "mainTrials": 120,
-        "attentionChecks": 2,
-        "trialDuration": 8000,
-        "barSizes": {
-            "large": {
-                "width": 140,
-                "height": 280
+        "phase1": {
+            "largeCount": 1,
+            "smallCount": 1,
+            "imageSource": "old-images"
+        },
+        "phase2": {
+            "oldImagesCount": 2,
+            "newImagesCount": 2,
+            "newImageSource": "new-images"
+        },
+        "imageDisplayDuration": 2000,
+        "imageSizes": {
+            "large": "800px",
+            "medium": "520px",
+            "small": "235px"
+        },
+        "attentionChecks": {
+            "enabled": true,
+            "phase1": {
+                "count": 1,
+                "positions": [1]
             },
-            "small": {
-                "width": 90,
-                "height": 160
+            "phase2": {
+                "count": 2,
+                "positions": [1, 2]
             }
         }
     },
     "attentionCheckQuestions": [
         {
+            "id": 1,
             "type": "multi-choice",
-            "prompt": "Please select \"Berlin\" regardless of the truth. Which of the following is the capital city of France?",
-            "options": ["France", "Berlin", "London", "Madrid", "Paris"],
-            "correct_answer": "Berlin"
+            "prompt": "Please select '5' regardless of the truth. If 2 + 2 = 4, how many sides does a standard rectangle have?",
+            "options": ["2", "3", "4", "5", "6"],
+            "correct_answer": "5"
         },
         {
+            "id": 2,
             "type": "multi-choice",
-            "prompt": "Please select \"lion\" regardless of the truth. Which one of the animals below is not a mammal?",
-            "options": ["Lion", "Dog", "Cat", "Bird", "None of them"],
-            "correct_answer": "Lion"
+            "prompt": "Please select 'Blue' regardless of the truth. What color do you get when you mix red and white?",
+            "options": ["Pink", "Blue", "Purple", "Orange", "Yellow"],
+            "correct_answer": "Blue"
         },
         {
+            "id": 3,
             "type": "multi-choice",
-            "prompt": "Please select \"circle\" regardless of the correct answer. Which shape has three sides?",
-            "options": ["Triangle", "Circle", "Square", "Rectangle", "Pentagon"],
-            "correct_answer": "Circle"
+            "prompt": "Please select 'Tuesday' regardless of the truth. What day comes after Sunday?",
+            "options": ["Monday", "Tuesday", "Wednesday", "Friday", "Saturday"],
+            "correct_answer": "Tuesday"
+        },
+        {
+            "id": 4,
+            "type": "multi-choice",
+            "prompt": "Please select '7' regardless of the truth. How many days are in a week?",
+            "options": ["5", "6", "7", "8", "9"],
+            "correct_answer": "7"
+        },
+        {
+            "id": 5,
+            "type": "multi-choice",
+            "prompt": "Please select 'Dog' regardless of the truth. Which animal is known as the 'King of the Jungle'?",
+            "options": ["Tiger", "Elephant", "Dog", "Lion", "Bear"],
+            "correct_answer": "Dog"
         }
     ]
 } 

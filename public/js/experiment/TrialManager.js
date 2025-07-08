@@ -1,169 +1,408 @@
 /**
- * TrialManager.js - Trial Generation and Management
- * Handles loading trials from CSV, generating trial sequences, and managing trial flow
+ * TrialManager.js - Image Valuation Phase Management
+ * Handles Phase 1 (passive viewing) and Phase 2 (memory/valuation) management
  */
 
-// Add trial management methods to the RiskSurveyExperiment class
-Object.assign(RiskSurveyExperiment.prototype, {
+// Add trial management methods to the ImageValuationExperiment class
+Object.assign(ImageValuationExperiment.prototype, {
     
-    async generateTrials() {
-        try {
-            // Load trials from CSV file
-            const trialsData = await this.loadTrialsFromCSV();
-            console.log(`Loaded ${trialsData.length} trials from CSV`);
-            
-            // Simple random selection with no duplicates within the experiment
-            const shuffledTrials = this.shuffle([...trialsData]);
-            
-            // Select trials for main experiment (ensuring no duplicates)
-            const mainTrialCount = Math.min(this.experimentConfig.mainTrials, shuffledTrials.length);
-            const selectedMainTrials = shuffledTrials.slice(0, mainTrialCount);
-            
-            // Select practice trials from remaining trials (or from a separate shuffle)
-            const practiceTrialCount = this.experimentConfig.practiceTrials;
-            const remainingTrials = shuffledTrials.slice(mainTrialCount);
-            let selectedPracticeTrials;
-            
-            if (remainingTrials.length >= practiceTrialCount) {
-                // Use remaining trials for practice
-                selectedPracticeTrials = remainingTrials.slice(0, practiceTrialCount);
-            } else {
-                // Not enough remaining - shuffle again for practice (overlap okay)
-                const practicePool = this.shuffle([...trialsData]);
-                selectedPracticeTrials = practicePool.slice(0, practiceTrialCount);
+    startPhase1() {
+        this.currentPhase = 1;
+        this.phase1Timeline = [];
+        this.phase1TimelineIndex = 0;
+        this.attentionCheckCounter = 0;
+        this.phase1StartTime = Date.now();
+        
+        // Build timeline: insert attention checks at correct positions
+        const attentionPositions = this.experimentConfig.attentionChecks.phase1.positions;
+        let imageIdx = 0;
+        for (let i = 1; i <= this.phase1Images.length; i++) {
+            // Insert image trial
+            this.phase1Timeline.push({ type: 'image', image: this.phase1Images[imageIdx++] });
+            // Insert attention check if needed (positions are 1-based, after image i)
+            if (attentionPositions.includes(i)) {
+                this.phase1Timeline.push({ type: 'attention', attentionIndex: this.attentionCheckCounter++ });
             }
-            
-            // Create practice trials
-            this.practiceTrials = selectedPracticeTrials.map((trial, i) => ({
-                trial_number: `practice_${i + 1}`,
-                risk_probability: trial.risk_probability,
-                risk_reward: trial.risk_reward,
-                safe_reward: trial.safe_reward,
-                size_condition: trial.size_condition,
-                risk_on_left: Math.random() < 0.5,
-                is_practice: true,
-                combination_id: trial.combination_id,
-                expected_value: trial.expected_value,
-                trial_id: trial.trial_id
-            }));
+        }
+        this.attentionCheckCounter = 0; // reset for use in attention check logic
+        this.showNextPhase1Step();
+    },
 
-            // Create main trials
-            this.trials = selectedMainTrials.map((trial, i) => ({
-                trial_number: i + 1,
-                risk_probability: trial.risk_probability,
-                risk_reward: trial.risk_reward,
-                safe_reward: trial.safe_reward,
-                size_condition: trial.size_condition,
-                risk_on_left: Math.random() < 0.5,
-                is_practice: false,
-                combination_id: trial.combination_id,
-                expected_value: trial.expected_value,
-                trial_id: trial.trial_id
-            }));
+    showNextPhase1Step() {
+        if (this.phase1TimelineIndex >= this.phase1Timeline.length) {
+            this.showPhase2Instructions();
+            return;
+        }
+        const step = this.phase1Timeline[this.phase1TimelineIndex];
+        if (step.type === 'image') {
+            const image = step.image;
+        this.imageDisplayStartTime = Date.now();
+            // Show image
+            const imageSize = this.experimentConfig.imageSizes[image.size];
+        document.body.innerHTML = `
+            <div class="main-container" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+                <div style="text-align: center;">
+                        <img src="images/old-images/${image.filename}"
+                             alt="Food image ${image.id}"
+                             style="max-width: ${imageSize}; max-height: ${imageSize}; width: auto; height: auto; display: block; margin: 0 auto; border-radius: 0; box-shadow: none; background: none;"
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4gPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPiA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkZvb2QgJHtpbWFnZS5pZH08L3RleHQ+IDwvc3ZnPg==';">
+                        <div style="margin-top: 18px; font-size: 17px; color: #444; font-family: Arial, sans-serif; letter-spacing: 0.01em;">Actual size: 10 cm × 10 cm | 300 kcal</div>
+                    </div>
+                </div>`;
+            setTimeout(() => {
+                this.recordPhase1ImageData(image);
+                this.phase1TimelineIndex++;
+                this.showNextPhase1Step();
+            }, this.experimentConfig.imageDisplayDuration);
+        } else if (step.type === 'attention') {
+            this.showPhase1AttentionCheck(step.attentionIndex);
+        }
+    },
 
-            // Select and intersperse attention checks (only if they exist and are requested)
-            this.finalTimeline = [...this.trials];
-            
-            if (this.attentionCheckQuestions && 
-                this.attentionCheckQuestions.length > 0 && 
-                this.experimentConfig.attentionChecks > 0) {
-                
-                const selectedAttentionChecks = this.shuffle([...this.attentionCheckQuestions])
-                    .slice(0, this.experimentConfig.attentionChecks);
-                
-                this.attentionChecks = selectedAttentionChecks.map(q => ({ ...q, is_attention: true }));
-                
-                if (this.attentionChecks.length > 0 && this.trials.length > 0) {
-                    const interval = Math.floor(this.trials.length / (this.attentionChecks.length + 1));
-                    let insertedCount = 0;
-                    
-                    for (let i = 0; i < this.attentionChecks.length; i++) {
-                        const insertPosition = (i + 1) * interval + insertedCount;
-                        if (insertPosition < this.finalTimeline.length) {
-                            this.finalTimeline.splice(insertPosition, 0, this.attentionChecks[i]);
-                            insertedCount++;
-                        } else {
-                            this.finalTimeline.push(this.attentionChecks[i]);
-                        }
-                    }
-                }
+    showPhase1AttentionCheck(attentionIndex) {
+        const question = this.attentionCheckQuestions[attentionIndex];
+        this.attentionCheckStartTime = Date.now();
+        document.body.innerHTML = `
+            <div class="main-container">
+                <div class="instructions">
+                    <h2>Attention Check</h2>
+                    <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
+                        <p style="font-size: 18px; margin-bottom: 1.5rem;">
+                            ${question.prompt}
+                        </p>
+                        <div style="margin: 1rem 0;">
+                            ${question.options.map((option, index) => `
+                                <div style="margin: 0.5rem 0;">
+                                    <label style="cursor: pointer; font-size: 16px;">
+                                        <input type="radio" name="attentionResponse" value="${option}" style="margin-right: 0.5rem;">
+                                        ${option}
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <button onclick="experiment.submitPhase1AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
+                        Continue
+                    </button>
+                </div>
+            </div>`;
+    },
+
+    submitPhase1AttentionCheck(attentionIndex) {
+        const selectedOption = document.querySelector('input[name="attentionResponse"]:checked');
+        if (!selectedOption) {
+            alert('Please select an answer to continue');
+            return;
+        }
+        const question = this.attentionCheckQuestions[attentionIndex];
+        const response = selectedOption.value;
+        const correct = (response === question.correct_answer);
+        const responseTime = (Date.now() - this.attentionCheckStartTime) / 1000;
+        if (!correct) {
+            alert('That is not the correct answer. Please try again.');
+            return;
+        }
+        // Record attention check data
+        const attentionRow = [
+            this.subjectId || 'unknown',      // participant_id
+            'attention_check',                // entry_type
+            this.currentPhase,                // phase
+            '',                               // image_id
+            '',                               // filename
+            '',                               // image_size
+            '',                               // image_type
+            '',                               // memory_response
+            '',                               // payment_response
+            '',                               // confidence
+            responseTime.toFixed(3),          // response_time
+            question.id,                      // attention_check_id
+            response,                         // attention_response
+            correct,                          // attention_correct
+            '',                               // snack_preference
+            '',                               // desire_to_eat
+            '',                               // hunger
+            '',                               // fullness
+            '',                               // satisfaction
+            '',                               // eating_capacity
+            this.sessionId || '',             // session_id
+            new Date().toISOString()          // timestamp
+        ].join(',') + '\n';
+        this.csvData.push(attentionRow);
+        this.phase1TimelineIndex++;
+        this.showNextPhase1Step();
+    },
+
+    recordPhase1ImageData(image) {
+        const displayDuration = Date.now() - this.imageDisplayStartTime;
+        
+        // Record Phase 1 image viewing data
+        const phase1Row = [
+            this.subjectId || 'unknown',      // participant_id
+            'phase1_image',                   // entry_type
+            1,                                // phase
+            image.id,                         // image_id
+            image.filename,                   // filename
+            image.size,                       // image_size
+            '',                               // image_type (not relevant for phase 1)
+            '',                               // memory_response
+            '',                               // payment_response
+            '',                               // confidence
+            (displayDuration / 1000).toFixed(3), // response_time (actual display duration)
+            '',                               // attention_check_id
+            '',                               // attention_response
+            '',                               // attention_correct
+            '',                               // snack_preference
+            '',                               // desire_to_eat
+            '',                               // hunger
+            '',                               // fullness
+            '',                               // satisfaction
+            '',                               // eating_capacity
+            this.sessionId || '',             // session_id
+            new Date().toISOString()          // timestamp
+        ].join(',') + '\n';
+        
+        this.csvData.push(phase1Row);
+        console.log(`Recorded Phase 1 image data: ${image.filename} (${image.size}) - ${displayDuration}ms`);
+    },
+
+    startPhase2() {
+        this.currentPhase = 2;
+        this.phase2Timeline = [];
+        this.phase2TimelineIndex = 0;
+        this.phase2StartTime = Date.now();
+        this.attentionCheckCounter = 0;
+
+        // Build timeline: insert attention checks at correct positions
+        const attentionPositions = this.experimentConfig.attentionChecks.phase2.positions;
+        let imageIdx = 0;
+        for (let i = 1; i <= this.phase2Images.length; i++) {
+            // Insert image trial
+            this.phase2Timeline.push({ type: 'image', image: this.phase2Images[imageIdx++] });
+            // Insert attention check if needed (positions are 1-based, after image i)
+            if (attentionPositions.includes(i)) {
+                this.phase2Timeline.push({ type: 'attention', attentionIndex: this.attentionCheckCounter++ });
             }
-            
-            console.log(`Generated ${this.practiceTrials.length} practice trials and ${this.trials.length} main trials`);
-            
-        } catch (error) {
-            console.error("Error loading trials from CSV:", error);
-            // Fall back to old generation method if CSV loading fails
-            // this.generateTrialsOldMethod();
+        }
+        this.attentionCheckCounter = 0; // reset for use in attention check logic
+        this.showNextPhase2Step();
+    },
+
+    showNextPhase2Step() {
+        if (this.phase2TimelineIndex >= this.phase2Timeline.length) {
+            this.showFinalQuestionsPage();
+            return;
+        }
+        const step = this.phase2Timeline[this.phase2TimelineIndex];
+        if (step.type === 'image') {
+            const image = step.image;
+            this.imageQuestionStartTime = Date.now();
+            this.currentMemoryResponse = null;
+            this.currentPaymentResponse = null;
+            this.currentConfidence = null;
+            this.sliderInteracted = false;
+            const imageSize = this.experimentConfig.imageSizes[image.size];
+            const imageFolder = image.isOld ? 'old-images' : 'new-images';
+            document.body.innerHTML = `
+                <div class="main-container" style="display: flex; flex-direction: column; align-items: center; min-height: 100vh;">
+                    <div class="instructions" style="width: 100%; max-width: 600px; margin: 0 auto;">
+                        <div style="text-align: center; margin-bottom: 32px;">
+                            <img src="images/${imageFolder}/${image.filename}"
+                                 alt="Food image ${image.id}"
+                                 style="max-width: ${imageSize}; max-height: ${imageSize}; width: auto; height: auto; display: block; margin: 0 auto; border-radius: 0; box-shadow: none; background: none;"
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4gPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPiA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkZvb2QgJHtpbWFnZS5pZH08L3RleHQ+IDwvc3ZnPg==';">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 36px; align-items: center;">
+                            <!-- Memory Question -->
+                            <div style="margin-bottom: 0; text-align: center;">
+                                <p style="font-weight: 600; margin-bottom: 12px; font-size: 17px; color: #222;">Have you seen this image before?</p>
+                                <div style="display: flex; gap: 32px; justify-content: center;">
+                                    <label style="cursor: pointer; font-size: 16px;">
+                                        <input type="radio" name="memory" value="yes" style="margin-right: 0.5rem;"> Yes
+                                    </label>
+                                    <label style="cursor: pointer; font-size: 16px;">
+                                        <input type="radio" name="memory" value="no" style="margin-right: 0.5rem;"> No
+                                    </label>
+                                </div>
+                            </div>
+                            <!-- Payment Question -->
+                            <div style="margin-bottom: 0; text-align: center;">
+                                <p style="font-weight: 600; margin-bottom: 12px; font-size: 17px; color: #222;">How much are you willing to pay for the item?</p>
+                                <div style="display: flex; gap: 18px; justify-content: center;">
+                                    <label style="cursor: pointer; font-size: 16px;">
+                                        <input type="radio" name="payment" value="0" style="margin-right: 0.5rem;"> $0
+                                    </label>
+                                    <label style="cursor: pointer; font-size: 16px;">
+                                        <input type="radio" name="payment" value="1" style="margin-right: 0.5rem;"> $1
+                                    </label>
+                                    <label style="cursor: pointer; font-size: 16px;">
+                                        <input type="radio" name="payment" value="2" style="margin-right: 0.5rem;"> $2
+                                    </label>
+                                    <label style="cursor: pointer; font-size: 16px;">
+                                        <input type="radio" name="payment" value="3" style="margin-right: 0.5rem;"> $3
+                                    </label>
+                                    <label style="cursor: pointer; font-size: 16px;">
+                                        <input type="radio" name="payment" value="4" style="margin-right: 0.5rem;"> $4
+                                    </label>
+                                </div>
+                            </div>
+                            <!-- Confidence Question -->
+                            <div style="margin-bottom: 0; text-align: center; width: 100%;">
+                                <p style="font-weight: 600; margin-bottom: 12px; font-size: 17px; color: #222;">
+                                    On a scale of 0–100, how confident are you in your willingness-to-pay choice?
+                                </p>
+                                <div style="margin: 0.1rem 0; width: 100%;">
+                                    <input type="range" id="confidenceSlider" min="0" max="100" value="50" 
+                                           style="width: 100%; accent-color: #1976d2; height: 4px; margin-bottom: 8px;" onchange="experiment.updateConfidence(this.value)">
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 0.1rem; color: #555;">
+                                        <span>0 (Not confident)</span>
+                                        <span id="confidenceValue">50</span>
+                                        <span>100 (Very confident)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: center; margin-top: 32px;">
+                            <small style="color: #666; display: block; margin-bottom: 10px; font-size: 15px;">
+                                Image ${this.phase2TimelineIndex + 1} of ${this.phase2Timeline.filter(s => s.type === 'image').length}
+                            </small>
+                            <button onclick="experiment.submitPhase2Response()" class="next-button" id="submitBtn">
+                                Continue
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        } else if (step.type === 'attention') {
+            this.showPhase2AttentionCheck(step.attentionIndex);
         }
     },
 
-    async loadTrialsFromCSV() {
-        const response = await fetch('full_trials.csv');
-        if (!response.ok) {
-            throw new Error(`Failed to load trials CSV: ${response.status}`);
-        }
-        
-        const csvText = await response.text();
-        const lines = csvText.split('\n').filter(line => line.trim());
-        
-        if (lines.length < 2) {
-            throw new Error('CSV file appears to be empty or malformed');
-        }
-        
-        const headers = lines[0].split(',');
-        const trials = [];
-        
-        for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(',');
-            const trial = {};
-            
-            headers.forEach((header, index) => {
-                const value = values[index];
-                // Convert numeric fields
-                if (['trial_id', 'combination_id', 'risk_probability', 'risk_reward', 'safe_reward', 'expected_value'].includes(header)) {
-                    trial[header] = parseInt(value);
-                } else {
-                    trial[header] = value;
-                }
-            });
-            
-            trials.push(trial);
-        }
-        
-        return trials;
+    showPhase2AttentionCheck(attentionIndex) {
+        const question = this.attentionCheckQuestions[attentionIndex];
+        this.attentionCheckStartTime = Date.now();
+        document.body.innerHTML = `
+            <div class="main-container">
+                <div class="instructions">
+                    <h2>Attention Check</h2>
+                    <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
+                        <p style="font-size: 18px; margin-bottom: 1.5rem;">
+                            ${question.prompt}
+                        </p>
+                        <div style="margin: 1rem 0;">
+                            ${question.options.map((option, index) => `
+                                <div style="margin: 0.5rem 0;">
+                                    <label style="cursor: pointer; font-size: 16px;">
+                                        <input type="radio" name="attentionResponse" value="${option}" style="margin-right: 0.5rem;">
+                                        ${option}
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <button onclick="experiment.submitPhase2AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
+                        Continue
+                    </button>
+                </div>
+            </div>`;
     },
 
-    shuffle(array) {
-        const shuffled = [...array];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    submitPhase2AttentionCheck(attentionIndex) {
+        const selectedOption = document.querySelector('input[name="attentionResponse"]:checked');
+        if (!selectedOption) {
+            alert('Please select an answer to continue');
+            return;
         }
-        return shuffled;
+        const question = this.attentionCheckQuestions[attentionIndex];
+        const response = selectedOption.value;
+        const correct = (response === question.correct_answer);
+        const responseTime = (Date.now() - this.attentionCheckStartTime) / 1000;
+        if (!correct) {
+            alert('That is not the correct answer. Please try again.');
+            return;
+        }
+        // Record attention check data
+        const attentionRow = [
+            this.subjectId || 'unknown',      // participant_id
+            'attention_check',                // entry_type
+            this.currentPhase,                // phase
+            '',                               // image_id
+            '',                               // filename
+            '',                               // image_size
+            '',                               // image_type
+            '',                               // memory_response
+            '',                               // payment_response
+            '',                               // confidence
+            responseTime.toFixed(3),          // response_time
+            question.id,                      // attention_check_id
+            response,                         // attention_response
+            correct,                          // attention_correct
+            '',                               // snack_preference
+            '',                               // desire_to_eat
+            '',                               // hunger
+            '',                               // fullness
+            '',                               // satisfaction
+            '',                               // eating_capacity
+            this.sessionId || '',             // session_id
+            new Date().toISOString()          // timestamp
+        ].join(',') + '\n';
+        this.csvData.push(attentionRow);
+        this.phase2TimelineIndex++;
+        this.showNextPhase2Step();
     },
 
-    startPractice() {
-        this.currentTrialIndex = 0;
-        this.isPractice = true;
-        this.currentTimeline = this.practiceTrials;
-        this.runNextTrial();
+    submitPhase2Response() {
+        // Get memory response
+        const memoryResponse = document.querySelector('input[name="memory"]:checked');
+        if (!memoryResponse) {
+            alert('Please answer whether you have seen this image before');
+            return;
+        }
+        // Get payment response
+        const paymentResponse = document.querySelector('input[name="payment"]:checked');
+        if (!paymentResponse) {
+            alert('Please select how much you are willing to pay');
+            return;
+        }
+        // Check confidence slider interaction
+        if (!this.sliderInteracted) {
+            alert('Please set your confidence level using the slider');
+            return;
+        }
+        const step = this.phase2Timeline[this.phase2TimelineIndex];
+        const image = step.image;
+        const responseTime = (Date.now() - this.imageQuestionStartTime) / 1000;
+        // Save response data in the requested CSV format
+        const csvRow = [
+            this.subjectId || 'unknown',      // participant_id
+            'phase2_response',                // entry_type
+            2,                                // phase
+            image.id,                         // image_id
+            image.filename,                   // filename
+            image.size,                       // image_size
+            image.isOld ? 'old' : 'new',      // image_type
+            memoryResponse.value,             // memory_response
+            parseInt(paymentResponse.value),  // payment_response
+            this.currentConfidence,           // confidence
+            responseTime.toFixed(3),          // response_time
+            '',                               // attention_check_id
+            '',                               // attention_response
+            '',                               // attention_correct
+            '',                               // snack_preference
+            '',                               // desire_to_eat
+            '',                               // hunger
+            '',                               // fullness
+            '',                               // satisfaction
+            '',                               // eating_capacity
+            this.sessionId || '',             // session_id
+            new Date().toISOString()          // timestamp
+        ].join(',') + '\n';
+        this.csvData.push(csvRow);
+        this.phase2TimelineIndex++;
+        this.showNextPhase2Step();
     },
 
-    beginMainTrials() {
-        // Request fullscreen
-                if (document.fullscreenElement === null) {
-            document.documentElement.requestFullscreen().then(() => {
-                this.currentTrialIndex = 0;
-                this.isPractice = false;
-                this.currentTimeline = this.finalTimeline;
-                this.runNextTrial();
-            });
-        } else {
-            this.currentTrialIndex = 0;
-            this.isPractice = false;
-            this.currentTimeline = this.finalTimeline;
-            this.runNextTrial();
-        }
+    updateConfidence(value) {
+        this.currentConfidence = parseInt(value);
+        this.sliderInteracted = true;
+        document.getElementById('confidenceValue').textContent = value;
     }
 }); 

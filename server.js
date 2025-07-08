@@ -9,6 +9,32 @@ const port = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
 let db;
+let serverConfig;
+
+// Load server configuration from config.json
+try {
+    const configPath = path.join(__dirname, 'public', 'config.json');
+    const configData = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(configData);
+    serverConfig = config.serverConfig;
+    console.log('Server configuration loaded from config.json');
+} catch (error) {
+    console.error('Error loading server configuration:', error);
+    process.exit(1);
+}
+
+// Add this near the top of the file, after serverConfig is loaded
+const allowedFields = {
+    phase1: [
+        "participant_id", "phase", "image_id", "filename", "image_size", "response_time", "session_id", "timestamp"
+    ],
+    phase2: [
+        "participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"
+    ],
+    final_questionnaire: [
+        "participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"
+    ]
+};
 
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json({ limit: '50mb' }));
@@ -289,7 +315,7 @@ app.get('/:urlPath', async (req, res) => {
 // Function to serve CSV results
 async function serveCsvResults(res) {
     try {
-        const resultsCollection = db.collection('results');
+        const resultsCollection = db.collection(serverConfig.database.collection);
         const results = await resultsCollection.find({}).sort({ timestamp: 1 }).toArray();
         
         if (results.length === 0) {
@@ -297,32 +323,18 @@ async function serveCsvResults(res) {
         }
         
         // Generate CSV
-        const header = "participant_id,trial_number,bar_size_condition,choice,confidence,risk_probability,risk_reward,safe_probability,safe_reward,risk_position,safe_position,ev,bar_choice_time,confidence_choice_time,trial_id,timestamp";
+        const header = serverConfig.csv.headers.join(',');
         
         const csvRows = results.map(result => {
-            return [
-                result.participant_id || '',
-                result.trial_number || '',
-                result.bar_size_condition || '',
-                result.choice || '',
-                result.confidence || '',
-                result.risk_probability || '',
-                result.risk_reward || '',
-                result.safe_probability || '',
-                result.safe_reward || '',
-                result.risk_position || '',
-                result.safe_position || '',
-                result.ev || '',
-                result.bar_choice_time || '',
-                result.confidence_choice_time || '',
-                result.trial_id || '',
-                result.timestamp ? result.timestamp.toISOString() : ''
-            ].map(field => {
+            return serverConfig.csv.headers.map(header => {
+                const value = result[header] || '';
+                const fieldValue = header === 'timestamp' && result.timestamp ? result.timestamp.toISOString() : value;
+                
                 // Escape fields that contain commas or quotes
-                if (typeof field === 'string' && (field.includes(',') || field.includes('"'))) {
-                    return `"${field.replace(/"/g, '""')}"`;
+                if (typeof fieldValue === 'string' && (fieldValue.includes(',') || fieldValue.includes('"'))) {
+                    return `"${fieldValue.replace(/"/g, '""')}"`;
                 }
-                return field;
+                return fieldValue;
             }).join(',');
         });
         
@@ -330,7 +342,7 @@ async function serveCsvResults(res) {
         
         // Set headers for CSV download
         res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="results_${new Date().toISOString().split('T')[0]}.csv"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${serverConfig.csv.filename_prefix}_${new Date().toISOString().split('T')[0]}.csv"`);
         res.send(csvContent);
         
     } catch (error) {
@@ -377,64 +389,148 @@ function parseCSVRow(row) {
 
 // Endpoint to save data
 app.post('/save', async (req, res) => {
-    const { data } = req.body;
+    const { data, collection } = req.body;
     if (!data) {
         return res.status(400).send('No data received.');
     }
 
     try {
-        const resultsCollection = db.collection('results');
-        const header = "participant_id,trial_number,bar_size_condition,choice,confidence,risk_probability,risk_reward,safe_probability,safe_reward,risk_position,safe_position,ev,bar_choice_time,confidence_choice_time,trial_id";
-        const keys = header.split(',');
+        // Determine which collection to use
+        let collectionName;
+        if (collection === 'phase1') {
+            collectionName = serverConfig.database.phase1_collection;
+        } else if (collection === 'phase2') {
+            collectionName = serverConfig.database.phase2_collection;
+        } else if (collection === 'final_responses') {
+            collectionName = serverConfig.database.final_collection;
+        } else {
+            // Default to phase2 for backward compatibility
+            collectionName = serverConfig.database.phase2_collection;
+        }
+        const resultsCollection = db.collection(collectionName);
+        const keys = serverConfig.csv.headers;
+        
+        console.log(`Processing data submission: ${data.length} characters to collection ${collectionName}`);
         
         // Split data by newlines and filter out empty lines
         const rows = data.split('\n').filter(row => row.trim() !== '');
-        const entries = rows.map((row, index) => {
+        console.log(`Found ${rows.length} data rows to process`);
+        
+        const entries = [];
+        const errors = [];
+        
+        rows.forEach((row, index) => {
             try {
                 const values = parseCSVRow(row);
                 
                 if (values.length !== keys.length) {
-                    console.warn(`Row ${index + 1} has ${values.length} values but expected ${keys.length}`);
+                    const warning = `Row ${index + 1} has ${values.length} values but expected ${keys.length}`;
+                    console.warn(warning);
                     console.warn(`Row data: ${row}`);
+                    errors.push(warning);
                 }
                 
                 const entry = {};
                 keys.forEach((key, keyIndex) => {
                     const value = values[keyIndex];
-                    // Convert numeric fields
-                    if (['trial_number', 'confidence', 'risk_probability', 'risk_reward', 'safe_reward', 'safe_probability', 'bar_choice_time', 'confidence_choice_time', 'trial_id'].includes(key)) {
+                    
+                    // Convert numeric fields with proper validation
+                    const numericFields = ['confidence', 'response_time', 'desire_to_eat', 'hunger', 'fullness', 'satisfaction', 'eating_capacity', 'image_id', 'phase'];
+                    const booleanFields = ['attention_correct'];
+                    
+                    if (numericFields.includes(key)) {
                         // Handle 'null' strings and convert to actual null
                         if (value === 'null' || value === '' || value === undefined) {
                             entry[key] = null;
                         } else {
-                            entry[key] = parseFloat(value);
+                            const numValue = parseFloat(value);
+                            entry[key] = isNaN(numValue) ? null : numValue;
+                        }
+                    } else if (booleanFields.includes(key)) {
+                        // Handle boolean fields
+                        if (value === 'true' || value === true) {
+                            entry[key] = true;
+                        } else if (value === 'false' || value === false) {
+                            entry[key] = false;
+                        } else {
+                            entry[key] = null;
                         }
                     } else {
+                        // String fields
                         entry[key] = value || '';
                     }
                 });
                 
-                // Add timestamp
-                entry.timestamp = new Date();
+                // Add server timestamp
+                entry.server_timestamp = new Date();
                 
-                return entry;
+                // Validate required fields
+                if (!entry.participant_id) {
+                    errors.push(`Row ${index + 1}: Missing participant_id`);
+                }
+                // entry_type is not required for new format
+                entries.push(entry);
+                
             } catch (parseError) {
-                console.error(`Error parsing row ${index + 1}:`, parseError);
+                const errorMsg = `Error parsing row ${index + 1}: ${parseError.message}`;
+                console.error(errorMsg);
                 console.error(`Problematic row: ${row}`);
-                throw parseError;
+                errors.push(errorMsg);
             }
         });
 
-        console.log(`Inserting ${entries.length} entries to database`);
-        console.log('Sample entry:', entries[0]);
+        console.log(`Successfully parsed ${entries.length} entries`);
+        if (errors.length > 0) {
+            console.warn(`Encountered ${errors.length} warnings/errors:`, errors);
+        }
 
+        // Log sample data for verification
         if (entries.length > 0) {
-            await resultsCollection.insertMany(entries);
+            console.log('Sample entry:', JSON.stringify(entries[0], null, 2));
+            
+            // Get participant info for logging
+            const participantIds = [...new Set(entries.map(e => e.participant_id).filter(id => id))];
+            console.log(`Data submission summary:`, {
+                participants: participantIds,
+                totalEntries: entries.length,
+                warnings: errors.length
+            });
+        }
+
+        let filteredEntries = entries;
+        if (collectionName === serverConfig.database.phase1_collection) {
+            filteredEntries = entries.map(e => {
+                const obj = {};
+                allowedFields.phase1.forEach(f => { obj[f] = e[f]; });
+                obj.server_timestamp = new Date();
+                return obj;
+            });
+        } else if (collectionName === serverConfig.database.phase2_collection) {
+            filteredEntries = entries.map(e => {
+                const obj = {};
+                allowedFields.phase2.forEach(f => { obj[f] = e[f]; });
+                obj.server_timestamp = new Date();
+                return obj;
+            });
+        } else if (collectionName === serverConfig.database.final_collection) {
+            filteredEntries = entries.map(e => {
+                const obj = {};
+                allowedFields.final_questionnaire.forEach(f => { obj[f] = e[f]; });
+                obj.server_timestamp = new Date();
+                return obj;
+            });
+        }
+        await resultsCollection.insertMany(filteredEntries);
+        
+        let responseMessage = `Data saved successfully. ${entries.length} entries processed.`;
+        if (errors.length > 0) {
+            responseMessage += ` ${errors.length} warnings logged.`;
         }
         
-        res.status(200).send(`Data saved successfully. ${entries.length} entries processed.`);
+        res.status(200).send(responseMessage);
     } catch (err) {
         console.error('Error saving data to database:', err);
+        console.error('Stack trace:', err.stack);
         return res.status(500).send(`Error saving data: ${err.message}`);
     }
 });
@@ -446,7 +542,8 @@ async function connectToDb() {
     const client = new MongoClient(MONGODB_URI);
     await client.connect();
     console.log('Connected to MongoDB');
-    db = client.db('risk_survey'); // You can name your database here
+    db = client.db(serverConfig.database.name);
+    console.log(`Using database: ${serverConfig.database.name}`);
 }
 
 connectToDb().then(() => {

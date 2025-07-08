@@ -1,197 +1,250 @@
 /**
- * Pages.js - UI Pages and Screens
- * Handles welcome page, instructions, transitions between experiment phases
+ * Pages.js - Image Valuation Experiment UI Pages
+ * Handles welcome page, instructions, phase transitions, and final questions
  */
 
-// Add UI page methods to the RiskSurveyExperiment class
-Object.assign(RiskSurveyExperiment.prototype, {
+// Add page methods to the ImageValuationExperiment class
+Object.assign(ImageValuationExperiment.prototype, {
     
     showWelcomePage() {
         document.body.innerHTML = `
-            <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem;">
-                <div style="text-align: center; max-width: 600px; width: 100%;">
-                    <h1 style="font-size: 3rem; font-weight: 300; color: var(--text-primary); margin-bottom: 1rem; letter-spacing: -1px;">Decision-Making Study</h1>
-                    <p style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 4rem; font-weight: 300;">
-                        Welcome! Thank you for participating in this research study.
-                    </p>
-                    
-                    <div style="margin-bottom: 3rem;">
-                        <h2 style="font-size: 1.5rem; font-weight: 500; color: var(--text-primary); margin-bottom: 2rem;">Please Enter Your Information</h2>
-                        
-                        <div style="margin-bottom: 1.5rem;">
-                            <label for="subject-id" style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-primary); text-align: left;">Subject ID:</label>
-                            <input type="text" id="subject-id" placeholder="Enter your subject ID..." 
-                                style="width: 100%; padding: 16px 20px; font-size: 16px; border: 1px solid #e5e5e5; border-radius: 4px; box-sizing: border-box; font-family: inherit;">
-                        </div>
-                        
-                        <div id="id-warning" style="color: var(--risk-red); font-weight: 500; margin-top: 10px; visibility: hidden;">
-                            Please enter a valid subject ID to continue.
-                        </div>
+            <div class="main-container">
+                <div class="instructions">
+                    <h2>Welcome to the Image Valuation Study</h2>
+                    <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
+                        <p style="font-size: 18px; margin-bottom: 1rem;">
+                            Thank you for participating in this research study.
+                        </p>
+                        <p>
+                            This experiment consists of two phases where you will view food images and answer questions about them.
+                        </p>
+                        <p>
+                            The entire study should take approximately 15-20 minutes to complete.
+                        </p>
                     </div>
-                    
-                    <div style="text-align: center;">
-                        <button id="continue-btn" class="next-button" onclick="experiment.validateAndContinue()" disabled>Continue</button>
+                    <p>Please enter your participant ID to begin:</p>
+                    <div style="margin: 1rem 0;">
+                        <input type="text" id="subjectIdInput" placeholder="Enter your ID..." 
+                               style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px; font-size: 16px;">
                     </div>
+                    <button onclick="experiment.setSubjectIdAndStart()" class="next-button" id="startBtn">
+                        Begin Experiment
+                    </button>
                 </div>
-            </div>
-        `;
+            </div>`;
         
-        // Add event listener for subject ID input
-        const subjectInput = document.getElementById('subject-id');
-        const continueBtn = document.getElementById('continue-btn');
-        const warning = document.getElementById('id-warning');
+        // Focus on input field
+        document.getElementById('subjectIdInput').focus();
         
-        subjectInput.addEventListener('input', () => {
-            const value = subjectInput.value.trim();
-            if (value.length > 0) {
-                continueBtn.disabled = false;
-                continueBtn.style.background = 'var(--text-primary)';
-                continueBtn.style.cursor = 'pointer';
-                warning.style.visibility = 'hidden';
-            } else {
-                continueBtn.disabled = true;
-                continueBtn.style.background = 'var(--text-light)';
-                continueBtn.style.cursor = 'not-allowed';
-            }
-        });
-        
-        // Allow Enter key to continue
-        subjectInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !continueBtn.disabled) {
-                this.validateAndContinue();
+        // Allow Enter key to start
+        document.getElementById('subjectIdInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.setSubjectIdAndStart();
             }
         });
     },
 
-    validateAndContinue() {
-        const subjectInput = document.getElementById('subject-id');
-        const warning = document.getElementById('id-warning');
-        const subjectId = subjectInput.value.trim();
+    setSubjectIdAndStart() {
+        const subjectIdInput = document.getElementById('subjectIdInput');
+        const subjectId = subjectIdInput.value.trim();
         
-        if (subjectId.length === 0) {
-            warning.style.visibility = 'visible';
-            warning.textContent = 'Please enter a valid subject ID to continue.';
+        if (!subjectId) {
+            alert('Please enter a valid participant ID');
+            subjectIdInput.focus();
             return;
         }
         
-        // Store the subject ID
         this.subjectId = subjectId;
         console.log(`Subject ID set to: ${this.subjectId}`);
+        this.showPhase1Instructions();
+    },
+
+    showPhase1Instructions() {
+        document.body.innerHTML = `
+            <div class="main-container">
+                <div class="instructions">
+                    <h2>Phase 1: Image Viewing</h2>
+                    <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
+                        <p style="font-size: 18px; margin-bottom: 1rem;">
+                            In this phase, you will view ${this.experimentConfig.phase1.largeCount + this.experimentConfig.phase1.smallCount} food images.
+                        </p>
+                        <ul style="text-align: left; margin: 1rem 0; padding-left: 2rem;">
+                            <li>Each image will be displayed for ${this.experimentConfig.imageDisplayDuration / 1000} seconds</li>
+                            <li>Images will be shown in different sizes (${this.experimentConfig.phase1.largeCount} large, ${this.experimentConfig.phase1.smallCount} small)</li>
+                            <li>Simply look at each image - no response is required</li>
+                            ${this.experimentConfig.attentionChecks.enabled ? `<li>You will see ${this.experimentConfig.attentionChecks.phase1.count} attention check questions during this phase</li>` : ''}
+                        </ul>
+                        <p style="font-weight: bold; color: #333;">
+                            Please pay attention to each image as you will see them again later.
+                        </p>
+                    </div>
+                    <p>Press the button below when you're ready to begin Phase 1.</p>
+                    <button onclick="experiment.startPhase1()" class="next-button">
+                        Start Phase 1
+                    </button>
+                </div>
+            </div>`;
+    },
+
+    showPhase2Instructions() {
+        document.body.innerHTML = `
+            <div class="main-container">
+                <div class="instructions">
+                    <h2>Phase 2: Memory and Valuation</h2>
+                    <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
+                        <p style="font-size: 18px; margin-bottom: 1rem;">
+                            You have finished looking through the test stimuli. Now you will see ${this.experimentConfig.phase2.oldImagesCount + this.experimentConfig.phase2.newImagesCount} images (${this.experimentConfig.phase2.oldImagesCount} old, ${this.experimentConfig.phase2.newImagesCount} new) and answer questions.
+                        </p>
+                        <p>For each image, you will answer three questions:</p>
+                        <ul style="text-align: left; margin: 1rem 0; padding-left: 2rem;">
+                            <li><strong>Memory:</strong> Have you seen this image before?</li>
+                            <li><strong>Payment:</strong> How much are you willing to pay for this item?</li>
+                            <li><strong>Confidence:</strong> How confident are you in your payment choice?</li>
+                            ${this.experimentConfig.attentionChecks.enabled ? `<li><strong>Note:</strong> You will see ${this.experimentConfig.attentionChecks.phase2.count} attention check questions during this phase</li>` : ''}
+                        </ul>
+                        <p style="font-weight: bold; color: #333;">
+                            Take your time - there is no time limit for this phase.
+                        </p>
+                    </div>
+                    <p>Press the button below when you're ready to begin Phase 2.</p>
+                    <button onclick="experiment.startPhase2()" class="next-button">
+                        Start Phase 2
+                    </button>
+                </div>
+            </div>`;
+    },
+
+    showFinalQuestionsPage() {
+        document.body.innerHTML = `
+            <div class="main-container">
+                <div class="instructions">
+                    <h2>Final Questions</h2>
+                    <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
+                        <p style="font-size: 18px; margin-bottom: 1.5rem;">
+                            Please answer these final questions about your preferences and current state.
+                        </p>
+                        
+                        <!-- Snack Preference -->
+                        <div style="margin-bottom: 2rem;">
+                            <p style="font-weight: bold; margin-bottom: 0.5rem;">Do you prefer sweet or salty snacks?</p>
+                            <div style="margin: 0.5rem 0;">
+                                <label style="margin-right: 1rem;"><input type="radio" name="snackPref" value="neither"> Neither</label>
+                                <label style="margin-right: 1rem;"><input type="radio" name="snackPref" value="both"> Both</label>
+                                <label style="margin-right: 1rem;"><input type="radio" name="snackPref" value="salty"> Salty</label>
+                                <label style="margin-right: 1rem;"><input type="radio" name="snackPref" value="sweet"> Sweet</label>
+                            </div>
+                        </div>
+
+                        <!-- Desire to Eat -->
+                        <div style="margin-bottom: 2rem;">
+                            <p style="font-weight: bold; margin-bottom: 0.5rem;">How strong is your desire to eat right now?</p>
+                            <div style="margin: 1rem 0;">
+                                <input type="range" id="desireSlider" min="0" max="100" value="50" style="width: 100%;">
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 0.25rem;">
+                                    <span>Very weak</span>
+                                    <span>Very strong</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hunger -->
+                        <div style="margin-bottom: 2rem;">
+                            <p style="font-weight: bold; margin-bottom: 0.5rem;">How hungry do you feel?</p>
+                            <div style="margin: 1rem 0;">
+                                <input type="range" id="hungerSlider" min="0" max="100" value="50" style="width: 100%;">
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 0.25rem;">
+                                    <span>Not hungry at all</span>
+                                    <span>As hungry as I've ever felt</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fullness -->
+                        <div style="margin-bottom: 2rem;">
+                            <p style="font-weight: bold; margin-bottom: 0.5rem;">How full do you feel?</p>
+                            <div style="margin: 1rem 0;">
+                                <input type="range" id="fullnessSlider" min="0" max="100" value="50" style="width: 100%;">
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 0.25rem;">
+                                    <span>Not full at all</span>
+                                    <span>Totally full</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Satisfaction -->
+                        <div style="margin-bottom: 2rem;">
+                            <p style="font-weight: bold; margin-bottom: 0.5rem;">How satisfied do you feel?</p>
+                            <div style="margin: 1rem 0;">
+                                <input type="range" id="satisfactionSlider" min="0" max="100" value="50" style="width: 100%;">
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 0.25rem;">
+                                    <span>Completely empty</span>
+                                    <span>Cannot eat another bite</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Capacity to Eat -->
+                        <div style="margin-bottom: 2rem;">
+                            <p style="font-weight: bold; margin-bottom: 0.5rem;">How much do you think you can eat right now?</p>
+                            <div style="margin: 1rem 0;">
+                                <input type="range" id="capacitySlider" min="0" max="100" value="50" style="width: 100%;">
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 0.25rem;">
+                                    <span>Not at all</span>
+                                    <span>A large amount</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="experiment.submitFinalQuestions()" class="next-button" id="submitBtn">
+                        Complete Experiment
+                    </button>
+                </div>
+            </div>`;
+    },
+
+    submitFinalQuestions() {
+        // Get snack preference
+        const snackPref = document.querySelector('input[name="snackPref"]:checked');
+        if (!snackPref) {
+            alert('Please select your snack preference');
+            return;
+        }
+
+        // Get slider values and validate they were moved from default
+        const desireValue = document.getElementById('desireSlider').value;
+        const hungerValue = document.getElementById('hungerSlider').value;
+        const fullnessValue = document.getElementById('fullnessSlider').value;
+        const satisfactionValue = document.getElementById('satisfactionSlider').value;
+        const capacityValue = document.getElementById('capacitySlider').value;
+
+        // Check if all sliders are still at default (50) - this might indicate user didn't interact
+        const defaultValues = [desireValue, hungerValue, fullnessValue, satisfactionValue, capacityValue];
+        const allDefaults = defaultValues.every(val => val === '50');
         
-        // Continue to instructions
-        this.showInstructions();
-    },
+        if (allDefaults) {
+            const confirmDefault = confirm('All your slider values are set to the middle position (50). Is this correct, or would you like to adjust them?');
+            if (!confirmDefault) {
+                return;
+            }
+        }
 
-    showInstructions() {
-        document.body.innerHTML = `
-            <div style="min-height: 100vh; padding: 3rem 2rem; max-width: 1200px; margin: 0 auto;">
-                <div class="instructions" style="text-align: left; max-width: 900px; margin: 0 auto;">
-                    <h1 style="font-size: 2.5rem; font-weight: 300; color: var(--text-primary); margin-bottom: 3rem; letter-spacing: -1px; text-align: center;">Instructions for the Decision-Making Task</h1>
-                    
-                    <p style="font-size: 1.2rem; color: var(--text-primary); margin-bottom: 2rem; line-height: 1.8; font-weight: 300;">
-                        In this study, you will be making decisions between different monetary choices. These choices represent hypothetical situations, but you should choose as if the decisions were real.
-                    </p>
-                    
-                    <div style="margin-bottom: 2rem;">
-                        <h2 style="font-size: 1.6rem; font-weight: 400; color: var(--text-primary); margin-bottom: 2rem;">
-                            1. <u>Understanding Monetary Choices</u>: On each screen, you will be presented with two options—one will be a lottery, and the other will be a guaranteed amount.
-                        </h2>
-                        
-                        <div style="margin: 1.5rem 0;">
-                            <p style="font-size: 1.1rem; color: var(--text-primary); margin-bottom: 1rem; line-height: 1.7; font-weight: 300;">
-                                <strong>○ Option 1</strong>: A lottery has two possible outcomes. In the example below, the outcomes are 200 points or 0. The red and blue areas and the numbers within them represent the chance for obtaining these outcomes. There is a 75% chance of obtaining 200 points and a 25% chance of obtaining 0 points.
-                            </p>
-                            
-                            <div style="text-align: center; margin: 2rem 0;">
-                                <div class="option" style="margin: 1rem auto; display: inline-block;">
-                                    <div class="option-label" style="font-size: 18px; font-weight: 600; color: var(--text-primary); padding: var(--spacing-sm) 0;">200</div>
-                                    <div class="risk-bar size-small">
-                                        <div class="risk-bar-red" style="height: 75%;">75%</div>
-                                        <div class="risk-bar-blue" style="height: 25%;">25%</div>
-                                    </div>
-                                    <div class="option-label" style="font-size: 18px; font-weight: 600; color: var(--text-primary); padding: var(--spacing-sm) 0;">0</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style="margin: 1.5rem 0;">
-                            <p style="font-size: 1.1rem; color: var(--text-primary); margin-bottom: 1rem; line-height: 1.7; font-weight: 300;">
-                                <strong>○ Option 2</strong>: A guaranteed outcome where you have a 100% chance (shown in the black bar) to win a specific number of points, such as 150 points seen in this example.
-                            </p>
-                            
-                            <div style="text-align: center; margin: 2rem 0;">
-                                <div class="option" style="margin: 1rem auto; display: inline-block;">
-                                    <div class="option-label" style="font-size: 18px; font-weight: 600; color: var(--text-primary); padding: var(--spacing-sm) 0;">150</div>
-                                    <div class="safe-bar size-small">
-                                        100%
-                                    </div>
-                                    <div class="option-label" style="font-size: 18px; font-weight: 600; color: var(--text-primary); padding: var(--spacing-sm) 0; visibility: hidden;">0</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="margin: 2rem 0;">
-                        <h2 style="font-size: 1.6rem; font-weight: 400; color: var(--text-primary); margin-bottom: 2rem;">
-                            2. <u>Your Task</u>:
-                        </h2>
-                        <ol style="line-height: 1.8; font-size: 1.1rem; font-weight: 300; margin-left: 2rem;">
-                            <li style="margin-bottom: 1rem;"><strong>Choose</strong> your preferred option by clicking on it</li>
-                            <li style="margin-bottom: 1rem;"><strong>Rate your confidence</strong> (0-100) in your choice</li>
-                            <li style="margin-bottom: 1rem;"><strong>Click Next</strong> to continue to the next choice</li>
-                        </ol>
-                        <p style="font-size: 1.1rem; color: var(--text-secondary); margin-top: 2rem; font-style: italic; font-weight: 300;">
-                            Make decisions as if they were real. You'll start with practice trials.
-                        </p>
-                    </div>
-                    
-                    <div style="margin: 2rem 0; padding: 2rem; border-left: 4px solid #ffeaa7;">
-                        <h2 style="margin-top: 0; color: var(--text-primary); font-size: 1.6rem; font-weight: 400;">⏱️ Important Timing Info</h2>
-                        <p style="margin-bottom: 0; color: var(--text-primary); line-height: 1.7; font-size: 1.1rem; font-weight: 300;">
-                            You have <strong>8 seconds</strong> to make each choice. After selecting, rate your confidence (0-100) and click Next.
-                        </p>
-                    </div>
-                    
-                    <div style="margin: 2rem 0; padding: 2rem; border-left: 4px solid #bee5eb;">
-                        <h2 style="margin-top: 0; color: var(--text-primary); font-size: 1.6rem; font-weight: 400;">🎯 What to Expect</h2>
-                        <ul style="margin-bottom: 0; color: var(--text-primary); line-height: 1.7; font-size: 1.1rem; font-weight: 300; margin-left: 2rem;">
-                            <li style="margin-bottom: 1rem;"><strong>${this.config?.practiceTrials || 2} practice trials</strong> to get familiar</li>
-                            <li style="margin-bottom: 1rem;"><strong>${this.config?.mainTrials || 120} main trials</strong> with different choices</li>
-                            <li style="margin-bottom: 1rem;">Some <strong>attention checks</strong> during the task</li>
-                        </ul>
-                    </div>
-                
-                <div style="text-align: center; margin-top: 3rem;">
-                    <button class="next-button" onclick="experiment.startPractice()">Start Practice</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    },
+        // Collect all responses
+        this.finalAnswers = {
+            snackPreference: snackPref.value,
+            desireToEat: parseInt(desireValue),
+            hunger: parseInt(hungerValue),
+            fullness: parseInt(fullnessValue),
+            satisfaction: parseInt(satisfactionValue),
+            eatingCapacity: parseInt(capacityValue)
+        };
 
-    startMainTrials() {
-        document.body.innerHTML = `
-            <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem;">
-                <div style="text-align: center; max-width: 600px;">
-                    <h2 style="color: var(--text-primary); margin-bottom: 2rem; font-size: 2.5rem; font-weight: 300;">🎉 Practice Complete!</h2>
-                    <p style="font-size: 1.3rem; color: var(--text-secondary); margin-bottom: 3rem; line-height: 1.6; font-weight: 300;">
-                        Great! You're now ready for the main experiment.
-                    </p>
-                    <div style="margin: 3rem 0; padding: 2rem; border-left: 4px solid #c3e6c3;">
-                        <h3 style="margin-top: 0; color: var(--text-primary); font-size: 1.4rem;">📊 What's Next</h3>
-                        <ul style="margin-bottom: 0; color: var(--text-primary); line-height: 1.6; text-align: left; font-size: 1.1rem;">
-                            <li style="margin-bottom: 0.8rem;"><strong>${this.config?.mainTrials || 120} decision trials</strong> with varying risk levels</li>
-                            <li style="margin-bottom: 0.8rem;"><strong>8-second timer</strong> for each choice</li>
-                        </ul>
-                    </div>
-                    <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 3rem; font-weight: 300;">
-                        The screen will go fullscreen for the main experiment.
-                    </p>
-                    <div style="text-align: center;">
-                        <button class="next-button" onclick="experiment.beginMainTrials()">Begin</button>
-                    </div>
-                </div>
-            </div>
-        `;
+        console.log('Final answers collected:', this.finalAnswers);
+        
+        // Add some visual feedback
+        document.getElementById('submitBtn').innerHTML = 'Processing...';
+        document.getElementById('submitBtn').disabled = true;
+        
+        this.finishExperiment();
     }
 }); 
