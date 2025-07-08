@@ -187,7 +187,7 @@ Object.assign(ImageValuationExperiment.prototype, {
     },
 
     async saveToCollection(collection, data) {
-        const response = await fetch('/save', {
+        const response = await fetch('/api/save', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

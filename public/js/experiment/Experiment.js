@@ -43,7 +43,7 @@ class ImageValuationExperiment {
     async init() {
         try {
             console.log('Loading experiment configuration...');
-            const response = await fetch('config.json');
+            const response = await fetch('/api/config');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

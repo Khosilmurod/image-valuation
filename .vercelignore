@@ -1,0 +1,11 @@
+server.js
+render.yaml
+node_modules
+.DS_Store
+*.log
+.env
+generate_trials.py
+static/
+DATA_COLLECTION_FIXES.md
+IMPLEMENTATION_SUMMARY.md
+test-api.js 
