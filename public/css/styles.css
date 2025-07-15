@@ -704,3 +704,132 @@ body {
     text-align: center;
     margin: 1rem 0;
 } 
+
+/* Size reference lines for image display */
+.size-reference-container {
+    position: relative;
+    display: inline-block;
+    margin: 0 60px 60px 60px; /* Extra space for reference lines */
+}
+
+.size-reference-line {
+    background: #333;
+    position: absolute;
+}
+
+.size-reference-line.horizontal {
+    height: 1px;
+    width: 30px;
+}
+
+.size-reference-line.vertical {
+    width: 1px;
+    height: 30px;
+}
+
+.size-reference-text {
+    position: absolute;
+    font-size: 12px;
+    color: #333;
+    font-weight: 500;
+    user-select: none;
+}
+
+.size-reference-text.vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
+/* Responsive adjustments for size reference lines */
+@media (max-width: 768px) {
+    .size-reference-container {
+        margin: 0 40px 40px 40px;
+    }
+    
+    .size-reference-line.horizontal {
+        width: 20px;
+    }
+    
+    .size-reference-line.vertical {
+        height: 20px;
+    }
+    
+    .size-reference-text {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .size-reference-container {
+        margin: 0 30px 30px 30px;
+    }
+    
+    .size-reference-line.horizontal {
+        width: 15px;
+    }
+    
+    .size-reference-line.vertical {
+        height: 15px;
+    }
+    
+    .size-reference-text {
+        font-size: 9px;
+    }
+} 
+
+/* Attention check instruction styling */
+.attention-instruction-box {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #666;
+    border: 1px solid #e9ecef;
+}
+
+.attention-instruction-text {
+    font-size: 14px;
+    color: #6c757d;
+    margin: 0;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+.attention-question-prompt {
+    font-size: 18px;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+    color: #212529;
+    line-height: 1.5;
+}
+
+/* Responsive styling for attention checks */
+@media (max-width: 768px) {
+    .attention-instruction-box {
+        padding: 0.75rem;
+        margin-top: 1rem;
+    }
+    
+    .attention-instruction-text {
+        font-size: 13px;
+    }
+    
+    .attention-question-prompt {
+        font-size: 16px;
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .attention-instruction-box {
+        padding: 0.5rem;
+    }
+    
+    .attention-instruction-text {
+        font-size: 12px;
+    }
+    
+    .attention-question-prompt {
+        font-size: 15px;
+    }
+} 

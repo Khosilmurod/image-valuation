@@ -47,13 +47,23 @@ Object.assign(ImageValuationExperiment.prototype, {
             const imageStyle = `max-width: ${imageSize}; max-height: ${imageSize}; width: auto; height: auto; display: block; margin: 0 auto; border-radius: 0; box-shadow: none; background: none;`;
             const imageElement = this.getImageElement(imagePath, `Food image ${image.id}`, imageStyle);
             
-            // Show image
+            // Show image with size reference lines
             document.body.innerHTML = `
                 <div class="main-container" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
                     <div style="text-align: center;">
-                        ${imageElement}
-                        <div style="margin-top: 18px; font-size: 17px; color: #444; font-family: Arial, sans-serif; letter-spacing: 0.01em;">Actual size: 10 cm × 10 cm | 300 kcal</div>
-                        <div style="margin-top: 12px; font-size: 16px; color: #888;">Image ${imageNumber} of ${totalImages}</div>
+                        <div class="size-reference-container">
+                            ${imageElement}
+                            <!-- Horizontal reference lines -->
+                            <div class="size-reference-line horizontal" style="left: -40px; top: 0;"></div>
+                            <div class="size-reference-line horizontal" style="left: -40px; bottom: 0;"></div>
+                            <div class="size-reference-text vertical" style="left: -45px; top: 50%; transform: translateY(-50%);">10 cm</div>
+                            
+                            <!-- Vertical reference lines -->
+                            <div class="size-reference-line vertical" style="left: 0; bottom: -40px;"></div>
+                            <div class="size-reference-line vertical" style="right: 0; bottom: -40px;"></div>
+                            <div class="size-reference-text" style="bottom: -45px; left: 50%; transform: translateX(-50%);">10 cm</div>
+                        </div>
+                        <div style="margin-top: 20px; font-size: 16px; color: #888;">Image ${imageNumber} of ${totalImages}</div>
                     </div>
                 </div>`;
                 
@@ -75,7 +85,7 @@ Object.assign(ImageValuationExperiment.prototype, {
                 <div class="instructions">
                     <h2>Attention Check</h2>
                     <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
-                        <p style="font-size: 18px; margin-bottom: 1.5rem;">
+                        <p class="attention-question-prompt">
                             ${question.prompt}
                         </p>
                         <div style="margin: 1rem 0;">
@@ -87,6 +97,11 @@ Object.assign(ImageValuationExperiment.prototype, {
                                     </label>
                                 </div>
                             `).join('')}
+                        </div>
+                        <div class="attention-instruction-box">
+                            <p class="attention-instruction-text">
+                                ${question.instruction}
+                            </p>
                         </div>
                     </div>
                     <button onclick="experiment.submitPhase1AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
@@ -209,6 +224,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             this.currentPaymentResponse = null;
             this.currentConfidence = null;
             this.sliderInteracted = false;
+            this.paymentInteracted = false;
             const imageSize = this.experimentConfig.imageSizes[image.size];
             const imageFolder = image.isOld ? 'old-images' : 'new-images';
             
@@ -243,22 +259,14 @@ Object.assign(ImageValuationExperiment.prototype, {
                             <!-- Payment Question -->
                             <div style="margin-bottom: 0; text-align: center;">
                                 <p style="font-weight: 600; margin-bottom: 12px; font-size: 17px; color: #222;">How much are you willing to pay for the item?</p>
-                                <div style="display: flex; gap: 18px; justify-content: center;">
-                                    <label style="cursor: pointer; font-size: 16px;">
-                                        <input type="radio" name="payment" value="0" style="margin-right: 0.5rem;"> $0
-                                    </label>
-                                    <label style="cursor: pointer; font-size: 16px;">
-                                        <input type="radio" name="payment" value="1" style="margin-right: 0.5rem;"> $1
-                                    </label>
-                                    <label style="cursor: pointer; font-size: 16px;">
-                                        <input type="radio" name="payment" value="2" style="margin-right: 0.5rem;"> $2
-                                    </label>
-                                    <label style="cursor: pointer; font-size: 16px;">
-                                        <input type="radio" name="payment" value="3" style="margin-right: 0.5rem;"> $3
-                                    </label>
-                                    <label style="cursor: pointer; font-size: 16px;">
-                                        <input type="radio" name="payment" value="4" style="margin-right: 0.5rem;"> $4
-                                    </label>
+                                <div style="margin: 0.1rem 0; width: 100%;">
+                                    <input type="range" id="paymentSlider" min="0" max="4" value="2" step="0.25"
+                                           style="width: 100%; accent-color: #1976d2; height: 4px; margin-bottom: 8px;" onchange="experiment.updatePayment(this.value)">
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 0.1rem; color: #555;">
+                                        <span>$0</span>
+                                        <span id="paymentValue">$2.00</span>
+                                        <span>$4</span>
+                                    </div>
                                 </div>
                             </div>
                             <!-- Confidence Question -->
@@ -288,8 +296,9 @@ Object.assign(ImageValuationExperiment.prototype, {
                     </div>
                 </div>`;
                 
-            // Set initial confidence value
+            // Set initial values
             this.currentConfidence = 50;
+            this.currentPaymentResponse = 2;
         } else if (step.type === 'attention') {
             this.showPhase2AttentionCheck(step.attentionIndex);
         }
@@ -303,7 +312,7 @@ Object.assign(ImageValuationExperiment.prototype, {
                 <div class="instructions">
                     <h2>Attention Check</h2>
                     <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
-                        <p style="font-size: 18px; margin-bottom: 1.5rem;">
+                        <p class="attention-question-prompt">
                             ${question.prompt}
                         </p>
                         <div style="margin: 1rem 0;">
@@ -315,6 +324,11 @@ Object.assign(ImageValuationExperiment.prototype, {
                                     </label>
                                 </div>
                             `).join('')}
+                        </div>
+                        <div class="attention-instruction-box">
+                            <p class="attention-instruction-text">
+                                ${question.instruction}
+                            </p>
                         </div>
                     </div>
                     <button onclick="experiment.submitPhase2AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
@@ -375,10 +389,10 @@ Object.assign(ImageValuationExperiment.prototype, {
             alert('Please answer whether you have seen this image before');
             return;
         }
-        // Get payment response
-        const paymentResponse = document.querySelector('input[name="payment"]:checked');
-        if (!paymentResponse) {
-            alert('Please select how much you are willing to pay');
+        // Get payment response from slider
+        const paymentSlider = document.getElementById('paymentSlider');
+        if (!paymentSlider || !this.paymentInteracted) {
+            alert('Please set your payment amount using the slider');
             return;
         }
         // Check confidence slider interaction
@@ -399,7 +413,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             image.size,                       // image_size
             image.isOld ? 'old' : 'new',      // image_type
             memoryResponse.value,             // memory_response
-            parseInt(paymentResponse.value),  // payment_response
+            parseFloat(paymentSlider.value),  // payment_response
             this.currentConfidence,           // confidence
             responseTime.toFixed(3),          // response_time
             '',                               // attention_check_id
@@ -424,5 +438,13 @@ Object.assign(ImageValuationExperiment.prototype, {
         this.currentConfidence = parseInt(value);
         this.sliderInteracted = true;
         document.getElementById('confidenceValue').textContent = value;
+    },
+
+    updatePayment(value) {
+        this.currentPaymentResponse = parseFloat(value);
+        this.paymentInteracted = true;
+        // Format to show 2 decimal places for better readability
+        const formattedValue = parseFloat(value).toFixed(2);
+        document.getElementById('paymentValue').textContent = '$' + formattedValue;
     }
 }); 

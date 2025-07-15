@@ -19,13 +19,14 @@
     },
     "experimentConfig": {
         "phase1": {
-            "largeCount": 38,
-            "smallCount": 38,
+            "largeCount": 1,
+            "smallCount": 1,
+
             "imageSource": "old-images"
         },
         "phase2": {
-            "oldImagesCount": 76,
-            "newImagesCount": 76,
+            "oldImagesCount": 2,
+            "newImagesCount": 2,
             "newImageSource": "new-images"
         },
         "imageDisplayDuration": 2000,
@@ -50,35 +51,40 @@
         {
             "id": 1,
             "type": "multi-choice",
-            "prompt": "Please select '5' regardless of the truth. If 2 + 2 = 4, how many sides does a standard rectangle have?",
+            "prompt": "If 2 + 2 = 4, how many sides does a standard rectangle have?",
+            "instruction": "Please select '5' regardless of the truth.",
             "options": ["2", "3", "4", "5", "6"],
             "correct_answer": "5"
         },
         {
             "id": 2,
             "type": "multi-choice",
-            "prompt": "Please select 'Blue' regardless of the truth. What color do you get when you mix red and white?",
+            "prompt": "What color do you get when you mix red and white?",
+            "instruction": "Please select 'Blue' regardless of the truth.",
             "options": ["Pink", "Blue", "Purple", "Orange", "Yellow"],
             "correct_answer": "Blue"
         },
         {
             "id": 3,
             "type": "multi-choice",
-            "prompt": "Please select 'Tuesday' regardless of the truth. What day comes after Sunday?",
+            "prompt": "What day comes after Sunday?",
+            "instruction": "Please select 'Tuesday' regardless of the truth.",
             "options": ["Monday", "Tuesday", "Wednesday", "Friday", "Saturday"],
             "correct_answer": "Tuesday"
         },
         {
             "id": 4,
             "type": "multi-choice",
-            "prompt": "Please select '7' regardless of the truth. How many days are in a week?",
+            "prompt": "How many days are in a week?",
+            "instruction": "Please select '7' regardless of the truth.",
             "options": ["5", "6", "7", "8", "9"],
             "correct_answer": "7"
         },
         {
             "id": 5,
             "type": "multi-choice",
-            "prompt": "Please select 'Dog' regardless of the truth. Which animal is known as the 'King of the Jungle'?",
+            "prompt": "Which animal is known as the 'King of the Jungle'?",
+            "instruction": "Please select 'Dog' regardless of the truth.",
             "options": ["Tiger", "Elephant", "Dog", "Lion", "Bear"],
             "correct_answer": "Dog"
         }

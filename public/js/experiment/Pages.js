@@ -72,9 +72,9 @@ Object.assign(ImageValuationExperiment.prototype, {
                         </p>
                         <ul style="text-align: left; margin: 1rem 0; padding-left: 2rem;">
                             <li>Each image will be displayed for ${this.experimentConfig.imageDisplayDuration / 1000} seconds</li>
-                            <li>Images will be shown in different sizes (${this.experimentConfig.phase1.largeCount} large, ${this.experimentConfig.phase1.smallCount} small)</li>
+                            <li>Images will appear in different sizes on the screen</li>
                             <li>Simply look at each image - no response is required</li>
-                            ${this.experimentConfig.attentionChecks.enabled ? `<li>You will see ${this.experimentConfig.attentionChecks.phase1.count} attention check questions during this phase</li>` : ''}
+                            ${this.experimentConfig.attentionChecks.enabled ? `<li>You will see a few attention check questions during this phase</li>` : ''}
                         </ul>
                         <p style="font-weight: bold; color: #333;">
                             Please pay attention to each image as you will see them again later.
@@ -95,14 +95,14 @@ Object.assign(ImageValuationExperiment.prototype, {
                     <h2>Phase 2: Memory and Valuation</h2>
                     <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
                         <p style="font-size: 18px; margin-bottom: 1rem;">
-                            You have finished looking through the test stimuli. Now you will see ${this.experimentConfig.phase2.oldImagesCount + this.experimentConfig.phase2.newImagesCount} images (${this.experimentConfig.phase2.oldImagesCount} old, ${this.experimentConfig.phase2.newImagesCount} new) and answer questions.
+                            You have finished looking through the test stimuli. Now you will see ${this.experimentConfig.phase2.oldImagesCount + this.experimentConfig.phase2.newImagesCount} images and answer questions. Some images you have seen already and some you haven't.
                         </p>
                         <p>For each image, you will answer three questions:</p>
                         <ul style="text-align: left; margin: 1rem 0; padding-left: 2rem;">
                             <li><strong>Memory:</strong> Have you seen this image before?</li>
                             <li><strong>Payment:</strong> How much are you willing to pay for this item?</li>
                             <li><strong>Confidence:</strong> How confident are you in your payment choice?</li>
-                            ${this.experimentConfig.attentionChecks.enabled ? `<li><strong>Note:</strong> You will see ${this.experimentConfig.attentionChecks.phase2.count} attention check questions during this phase</li>` : ''}
+                            ${this.experimentConfig.attentionChecks.enabled ? `<li><strong>Note:</strong> You will see a few attention check questions during this phase</li>` : ''}
                         </ul>
                         <p style="font-weight: bold; color: #333;">
                             Take your time - there is no time limit for this phase.

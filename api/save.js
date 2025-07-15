@@ -18,10 +18,10 @@ try {
 
 const allowedFields = {
     phase1: [
-        "participant_id", "phase", "image_id", "filename", "image_size", "response_time", "attention_check_id", "attention_response", "attention_correct", "session_id", "timestamp"
+        "participant_id", "phase", "image_id", "filename", "image_size", "response_time", "session_id", "timestamp"
     ],
     phase2: [
-        "participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "attention_check_id", "attention_response", "attention_correct", "session_id", "timestamp"
+        "participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"
     ],
     final_questionnaire: [
         "participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"
@@ -135,7 +135,7 @@ module.exports = async function handler(req, res) {
                     
                     // Convert numeric fields with proper validation
                     const numericFields = ['confidence', 'response_time', 'desire_to_eat', 'hunger', 'fullness', 'satisfaction', 'eating_capacity', 'image_id', 'phase'];
-                    const booleanFields = ['attention_correct'];
+                    const booleanFields = [];
                     
                     if (numericFields.includes(key)) {
                         // Handle 'null' strings and convert to actual null

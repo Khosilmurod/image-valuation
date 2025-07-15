@@ -26,10 +26,10 @@ try {
 // Add this near the top of the file, after serverConfig is loaded
 const allowedFields = {
     phase1: [
-        "participant_id", "phase", "image_id", "filename", "image_size", "response_time", "attention_check_id", "attention_response", "attention_correct", "session_id", "timestamp"
+        "participant_id", "phase", "image_id", "filename", "image_size", "response_time", "session_id", "timestamp"
     ],
     phase2: [
-        "participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "attention_check_id", "attention_response", "attention_correct", "session_id", "timestamp"
+        "participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"
     ],
     final_questionnaire: [
         "participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"
@@ -40,19 +40,14 @@ const allowedFields = {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static files from the current directory
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Endpoint to serve config.json
 app.get('/config.json', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'config.json'));
 });
 
-// Protected CSV download endpoint
-app.get('/:urlPath', async (req, res) => {
+// Protected CSV download endpoint (with URL path)
+app.get('/:urlPath', async (req, res, next) => {
     const requestedPath = req.params.urlPath;
-    
-
     
     try {
         // Check if this path exists in settings collection
@@ -60,251 +55,254 @@ app.get('/:urlPath', async (req, res) => {
         
         const setting = await settingsCollection.findOne({ url: requestedPath });
         
-        if (!setting) {
-            // If no setting found, continue to normal static file serving
-            return res.status(404).send('Page not found');
-        }
-        
-        // If setting found, check for password in header or query
-        const providedPassword = req.headers.authorization?.replace('Bearer ', '') || req.query.password;
-        
-        if (!providedPassword) {
-            // Send password prompt HTML
-            const passwordPromptHTML = `
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Access Protected</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-                    <style>
-                        * {
-                            box-sizing: border-box;
-                        }
-                        
-                        body {
-                            font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                            margin: 0;
-                            padding: 0;
-                            background: #fff;
-                            color: #333;
-                            line-height: 1.6;
-                            font-weight: 400;
-                            font-size: 16px;
-                            min-height: 100vh;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        }
-                        
-                        .main-container {
-                            width: 100%;
-                            max-width: 500px;
-                            margin: 0 auto;
-                            padding: 3rem;
-                            background: #fff;
-                            border-radius: 8px;
-                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-                            text-align: center;
-                        }
-                        
-                        h2 {
-                            color: #333;
-                            font-size: 24px;
-                            font-weight: 600;
-                            margin-bottom: 1rem;
-                        }
-                        
-                        p {
-                            color: #666;
-                            margin-bottom: 2rem;
-                        }
-                        
-                        input[type="password"] {
-                            width: 100%;
-                            padding: 12px 16px;
-                            border: 1px solid #e5e5e5;
-                            border-radius: 4px;
-                            font-size: 16px;
-                            font-family: inherit;
-                            margin-bottom: 1.5rem;
-                            background: #fff;
-                        }
-                        
-                        input[type="password"]:focus {
-                            outline: none;
-                            border-color: #333;
-                            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                        }
-                        
-                        .next-button {
-                            background: #333;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            padding: 12px 24px;
-                            font-size: 16px;
-                            font-weight: 500;
-                            font-family: inherit;
-                            cursor: pointer;
-                            transition: background-color 0.2s ease;
-                            min-width: 150px;
-                        }
-                        
-                        .next-button:hover {
-                            background: #555;
-                        }
-                        
-                        .next-button:disabled {
-                            background: #ccc;
-                            cursor: not-allowed;
-                        }
-                        
-                        @media (max-width: 768px) {
-                            .main-container {
-                                padding: 2rem;
-                                margin: 1rem;
+        if (setting) {
+            // If setting found, this is a protected URL - check for password
+            const providedPassword = req.headers.authorization?.replace('Bearer ', '') || req.query.password;
+            
+            if (!providedPassword) {
+                // Send password prompt HTML
+                const passwordPromptHTML = `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Access Protected</title>
+                        <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+                        <style>
+                            * {
+                                box-sizing: border-box;
                             }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="main-container">
-                        <h2>Please Enter Your Information</h2>
-                        
-                        <div style="margin-bottom: 2rem;">
-                            <label for="password" style="display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500;">Password:</label>
-                            <form onsubmit="submitPassword(event)" id="passwordForm">
-                                <input 
-                                    type="password" 
-                                    id="password" 
-                                    placeholder="Enter access password..." 
-                                    required
-                                    autocomplete="current-password"
-                                    style="width: 100%; padding: 12px 16px; border: 1px solid #e5e5e5; border-radius: 4px; font-size: 16px; font-family: inherit; margin-bottom: 1.5rem; background: #fff;"
-                                >
-                                <br>
-                                <button type="submit" class="next-button" id="submitBtn">
-                                    Access Results
-                                </button>
-                            </form>
+                            
+                            body {
+                                font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                                margin: 0;
+                                padding: 0;
+                                background: #fff;
+                                color: #333;
+                                line-height: 1.6;
+                                font-weight: 400;
+                                font-size: 16px;
+                                min-height: 100vh;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            }
+                            
+                            .main-container {
+                                width: 100%;
+                                max-width: 500px;
+                                margin: 0 auto;
+                                padding: 3rem;
+                                background: #fff;
+                                border-radius: 8px;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+                                text-align: center;
+                            }
+                            
+                            h2 {
+                                color: #333;
+                                font-size: 24px;
+                                font-weight: 600;
+                                margin-bottom: 1rem;
+                            }
+                            
+                            p {
+                                color: #666;
+                                margin-bottom: 2rem;
+                            }
+                            
+                            input[type="password"] {
+                                width: 100%;
+                                padding: 12px 16px;
+                                border: 1px solid #e5e5e5;
+                                border-radius: 4px;
+                                font-size: 16px;
+                                font-family: inherit;
+                                margin-bottom: 1.5rem;
+                                background: #fff;
+                            }
+                            
+                            input[type="password"]:focus {
+                                outline: none;
+                                border-color: #333;
+                                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                            }
+                            
+                            .next-button {
+                                background: #333;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 12px 24px;
+                                font-size: 16px;
+                                font-weight: 500;
+                                font-family: inherit;
+                                cursor: pointer;
+                                transition: background-color 0.2s ease;
+                                min-width: 150px;
+                            }
+                            
+                            .next-button:hover {
+                                background: #555;
+                            }
+                            
+                            .next-button:disabled {
+                                background: #ccc;
+                                cursor: not-allowed;
+                            }
+                            
+                            @media (max-width: 768px) {
+                                .main-container {
+                                    padding: 2rem;
+                                    margin: 1rem;
+                                }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="main-container">
+                            <h2>Please Enter Your Information</h2>
+                            
+                            <div style="margin-bottom: 2rem;">
+                                <label for="password" style="display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500;">Password:</label>
+                                <form onsubmit="submitPassword(event)" id="passwordForm">
+                                    <input 
+                                        type="password" 
+                                        id="password" 
+                                        placeholder="Enter access password..." 
+                                        required
+                                        autocomplete="current-password"
+                                        style="width: 100%; padding: 12px 16px; border: 1px solid #e5e5e5; border-radius: 4px; font-size: 16px; font-family: inherit; margin-bottom: 1.5rem; background: #fff;"
+                                    >
+                                    <br>
+                                    <button type="submit" class="next-button" id="submitBtn">
+                                        Access Results
+                                    </button>
+                                </form>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <script>
-                        function submitPassword(event) {
-                            event.preventDefault();
-                            const password = document.getElementById('password').value;
-                            const submitBtn = document.getElementById('submitBtn');
-                            
-                            submitBtn.innerHTML = 'Verifying...';
-                            submitBtn.disabled = true;
-                            
-                            window.location.href = window.location.pathname + '?password=' + encodeURIComponent(password);
-                        }
                         
-                        document.getElementById('password').focus();
-                    </script>
-                </body>
-                </html>
-            `;
-            return res.send(passwordPromptHTML);
-        }
-        
-        // Verify password
-        if (providedPassword !== setting.password) {
-            return res.status(401).send(`
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Access Denied</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-                    <style>
-                        * {
-                            box-sizing: border-box;
-                        }
-                        
-                        body {
-                            font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                            margin: 0;
-                            padding: 0;
-                            background: #fff;
-                            color: #333;
-                            line-height: 1.6;
-                            font-weight: 400;
-                            font-size: 16px;
-                            min-height: 100vh;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        }
-                        
-                        .main-container {
-                            width: 100%;
-                            max-width: 500px;
-                            margin: 0 auto;
-                            padding: 3rem;
-                            background: #fff;
-                            border-radius: 8px;
-                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-                            text-align: center;
-                        }
-                        
-                        h2 {
-                            color: #dc2626;
-                            font-size: 24px;
-                            font-weight: 600;
-                            margin-bottom: 1rem;
-                        }
-                        
-                        p {
-                            color: #666;
-                            margin-bottom: 2rem;
-                        }
-                        
-                        .next-button {
-                            background: #333;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            padding: 12px 24px;
-                            font-size: 16px;
-                            font-weight: 500;
-                            font-family: inherit;
-                            cursor: pointer;
-                            transition: background-color 0.2s ease;
-                            text-decoration: none;
-                            display: inline-block;
-                        }
-                        
-                        .next-button:hover {
-                            background: #555;
-                        }
-                        
-                        @media (max-width: 768px) {
-                            .main-container {
-                                padding: 2rem;
-                                margin: 1rem;
+                        <script>
+                            function submitPassword(event) {
+                                event.preventDefault();
+                                const password = document.getElementById('password').value;
+                                const submitBtn = document.getElementById('submitBtn');
+                                
+                                submitBtn.innerHTML = 'Verifying...';
+                                submitBtn.disabled = true;
+                                
+                                window.location.href = window.location.pathname + '?password=' + encodeURIComponent(password);
                             }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="main-container">
-                        <h2>Access Denied</h2>
-                        <p>Incorrect password. Please try again.</p>
-                        <a href="${req.path}" class="next-button">Try Again</a>
-                    </div>
-                </body>
-                </html>
-            `);
+                            
+                            document.getElementById('password').focus();
+                        </script>
+                    </body>
+                    </html>
+                `;
+                return res.send(passwordPromptHTML);
+            }
+            
+            // Verify password
+            if (providedPassword !== setting.password) {
+                return res.status(401).send(`
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Access Denied</title>
+                        <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+                        <style>
+                            * {
+                                box-sizing: border-box;
+                            }
+                            
+                            body {
+                                font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                                margin: 0;
+                                padding: 0;
+                                background: #fff;
+                                color: #333;
+                                line-height: 1.6;
+                                font-weight: 400;
+                                font-size: 16px;
+                                min-height: 100vh;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            }
+                            
+                            .main-container {
+                                width: 100%;
+                                max-width: 500px;
+                                margin: 0 auto;
+                                padding: 3rem;
+                                background: #fff;
+                                border-radius: 8px;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+                                text-align: center;
+                            }
+                            
+                            h2 {
+                                color: #dc2626;
+                                font-size: 24px;
+                                font-weight: 600;
+                                margin-bottom: 1rem;
+                            }
+                            
+                            p {
+                                color: #666;
+                                margin-bottom: 2rem;
+                            }
+                            
+                            .next-button {
+                                background: #333;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 12px 24px;
+                                font-size: 16px;
+                                font-weight: 500;
+                                font-family: inherit;
+                                cursor: pointer;
+                                transition: background-color 0.2s ease;
+                                min-width: 150px;
+                                text-decoration: none;
+                                display: inline-block;
+                            }
+                            
+                            .next-button:hover {
+                                background: #555;
+                            }
+                            
+                            @media (max-width: 768px) {
+                                .main-container {
+                                    padding: 2rem;
+                                    margin: 1rem;
+                                }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="main-container">
+                            <h2>Access Denied</h2>
+                            <p>The password you entered is incorrect.</p>
+                            <a href="${req.path}" class="next-button">Try Again</a>
+                        </div>
+                    </body>
+                    </html>
+                `);
+            }
+            
+            // Password correct, show download options
+            await showDownloadOptions(res, req);
+            
+        } else {
+            // If no setting found, serve the experiment normally (no password required)
+            // This will serve static files from the public directory
+            return next();
         }
-        
-        // Password correct, serve CSV data
-        await serveCsvResults(res);
         
     } catch (error) {
         console.error('Error in protected route:', error);
@@ -312,38 +310,403 @@ app.get('/:urlPath', async (req, res) => {
     }
 });
 
-// Function to serve CSV results
-async function serveCsvResults(res) {
+// Root route - serve experiment directly (no password required)
+app.get('/', (req, res) => {
+    console.log('🔍 DEBUG: Root route accessed - serving experiment');
+    // Serve the experiment page directly from public directory
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Individual collection download endpoints (with URL path)
+app.get('/:urlPath/download/:collectionType', async (req, res) => {
+    const requestedPath = req.params.urlPath;
+    const collectionType = req.params.collectionType;
+    
     try {
-        const resultsCollection = db.collection(serverConfig.database.collection);
-        const results = await resultsCollection.find({}).sort({ timestamp: 1 }).toArray();
+        // Check if this path exists in settings collection
+        const settingsCollection = db.collection('settings');
+        const setting = await settingsCollection.findOne({ url: requestedPath });
         
-        if (results.length === 0) {
-            return res.status(404).send('No results found');
+        if (!setting) {
+            return res.status(404).send('Page not found');
         }
         
-        // Generate CSV
-        const header = serverConfig.csv.headers.join(',');
+        // Check for password in header or query
+        const providedPassword = req.headers.authorization?.replace('Bearer ', '') || req.query.password;
+        
+        if (!providedPassword || providedPassword !== setting.password) {
+            return res.status(401).send('Unauthorized - Invalid or missing password');
+        }
+        
+        // Password correct, serve CSV for the specific collection
+        await serveCsvResults(res, collectionType);
+        
+    } catch (error) {
+        console.error('Error in download route:', error);
+        res.status(500).send('Internal server error');
+    }
+});
+
+// Individual collection download endpoints (without URL path - for direct access)
+app.get('/download/:collectionType', async (req, res) => {
+    const collectionType = req.params.collectionType;
+    
+    console.log('🔍 DEBUG: Download route accessed');
+    console.log('🔍 DEBUG: URL:', req.url);
+    console.log('🔍 DEBUG: Path:', req.path);
+    console.log('🔍 DEBUG: Collection type:', collectionType);
+    console.log('🔍 DEBUG: Query params:', req.query);
+    console.log('🔍 DEBUG: Headers:', req.headers);
+    
+    try {
+        // Check for password in header or query
+        const providedPassword = req.headers.authorization?.replace('Bearer ', '') || req.query.password;
+        
+        console.log('🔍 DEBUG: Provided password:', providedPassword ? 'YES' : 'NO');
+        
+        if (!providedPassword) {
+            console.log('🔍 DEBUG: No password provided, returning 401');
+            return res.status(401).send('Unauthorized - Password required');
+        }
+        
+        // For direct access, we'll use a default password or check against any setting
+        const settingsCollection = db.collection('settings');
+        const settings = await settingsCollection.find({}).toArray();
+        
+        console.log('🔍 DEBUG: Found settings:', settings.length);
+        
+        // Default password for root access if no settings exist
+        const defaultPassword = 'admin123';
+        
+        let isValidPassword = false;
+        
+        if (settings.length === 0) {
+            // No settings in database, use default password
+            isValidPassword = (providedPassword === defaultPassword);
+            console.log('🔍 DEBUG: Using default password validation');
+        } else {
+            // Check if password matches any setting
+            const validSetting = settings.find(setting => setting.password === providedPassword);
+            isValidPassword = !!validSetting;
+            console.log('🔍 DEBUG: Valid setting found:', validSetting ? 'YES' : 'NO');
+        }
+        
+        if (!isValidPassword) {
+            console.log('🔍 DEBUG: Invalid password, returning 401');
+            return res.status(401).send('Unauthorized - Invalid password');
+        }
+        
+        // Password correct, serve CSV for the specific collection
+        console.log('🔍 DEBUG: Password valid, serving CSV for:', collectionType);
+        await serveCsvResults(res, collectionType);
+        
+    } catch (error) {
+        console.error('🔍 DEBUG: Error in download route:', error);
+        res.status(500).send('Internal server error');
+    }
+});
+
+// Fix double-download path issue
+app.get('/download/download/:collectionType', (req, res) => {
+    const { collectionType } = req.params;
+    const queryString = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    res.redirect(`/download/${collectionType}${queryString}`);
+});
+
+// Function to show download options page
+async function showDownloadOptions(res, req) {
+    try {
+        // Get the URL path for proper routing
+        const urlPath = req.params.urlPath;
+        
+        // Get the password from the request
+        const providedPassword = req.headers.authorization?.replace('Bearer ', '') || req.query.password;
+        
+        // Determine the base URL for downloads
+        const downloadBase = urlPath ? `/${urlPath}` : '';
+        
+        // Create the password parameter for URLs
+        const passwordParam = providedPassword ? `?password=${encodeURIComponent(providedPassword)}` : '';
+        
+        // Get count of records in each collection
+        const collections = [
+            { name: serverConfig.database.phase1_collection, type: 'phase1', label: 'Phase 1 (Image Viewing)' },
+            { name: serverConfig.database.phase2_collection, type: 'phase2', label: 'Phase 2 (Memory & Valuation)' },
+            { name: serverConfig.database.final_collection, type: 'final_questionnaire', label: 'Final Questionnaire' }
+        ];
+        
+        let collectionCounts = {};
+        
+        for (const collection of collections) {
+            try {
+                const count = await db.collection(collection.name).countDocuments();
+                collectionCounts[collection.type] = count;
+                console.log(`Found ${count} records in ${collection.name} collection`);
+            } catch (error) {
+                console.warn(`Error counting documents in ${collection.name}:`, error.message);
+                collectionCounts[collection.type] = 0;
+            }
+        }
+        
+        const downloadPageHTML = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Download Experiment Data</title>
+                <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+                <style>
+                    * {
+                        box-sizing: border-box;
+                    }
+                    
+                    body {
+                        font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        background: #fff;
+                        color: #333;
+                        line-height: 1.6;
+                        font-weight: 400;
+                        font-size: 16px;
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    
+                    .main-container {
+                        width: 100%;
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 3rem;
+                        background: #fff;
+                        border-radius: 8px;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+                        text-align: center;
+                    }
+                    
+                    h2 {
+                        color: #333;
+                        font-size: 28px;
+                        font-weight: 600;
+                        margin-bottom: 1rem;
+                    }
+                    
+                    .description {
+                        color: #666;
+                        margin-bottom: 2rem;
+                        font-size: 16px;
+                    }
+                    
+                    .download-section {
+                        margin: 2rem 0;
+                        padding: 1.5rem;
+                        border: 1px solid #e5e5e5;
+                        border-radius: 8px;
+                        background: #fafafa;
+                    }
+                    
+                    .download-button {
+                        background: #333;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        padding: 12px 24px;
+                        font-size: 16px;
+                        font-weight: 500;
+                        font-family: inherit;
+                        cursor: pointer;
+                        transition: background-color 0.2s ease;
+                        min-width: 200px;
+                        text-decoration: none;
+                        display: inline-block;
+                        margin: 0.5rem;
+                    }
+                    
+                    .download-button:hover {
+                        background: #555;
+                    }
+                    
+                    .download-button:disabled {
+                        background: #ccc;
+                        cursor: not-allowed;
+                    }
+                    
+                    .record-count {
+                        font-size: 14px;
+                        color: #666;
+                        margin-top: 0.5rem;
+                    }
+                    
+                    .section-title {
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: #333;
+                        margin-bottom: 1rem;
+                    }
+                    
+                    .total-summary {
+                        margin-top: 2rem;
+                        padding: 1rem;
+                        background: #e8f5e8;
+                        border-radius: 6px;
+                        border-left: 4px solid #28a745;
+                    }
+                    
+                    @media (max-width: 768px) {
+                        .main-container {
+                            padding: 2rem;
+                            margin: 1rem;
+                        }
+                        
+                        .download-button {
+                            min-width: 100%;
+                            margin: 0.25rem 0;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="main-container">
+                    <h2>📊 Experiment Data Downloads</h2>
+                    <p class="description">
+                        Choose which dataset to download. Each file contains data from a specific phase of the experiment.
+                    </p>
+                    
+                    <div class="download-section">
+                        <div class="section-title">${collections[0].label}</div>
+                        <a href="${downloadBase}/download/phase1${passwordParam}" class="download-button" ${collectionCounts.phase1 === 0 ? 'style="background: #ccc; pointer-events: none;"' : ''}>
+                            📸 Download Phase 1 Data
+                        </a>
+                        <div class="record-count">${collectionCounts.phase1} records available</div>
+                    </div>
+                    
+                    <div class="download-section">
+                        <div class="section-title">${collections[1].label}</div>
+                        <a href="${downloadBase}/download/phase2${passwordParam}" class="download-button" ${collectionCounts.phase2 === 0 ? 'style="background: #ccc; pointer-events: none;"' : ''}>
+                            🧠 Download Phase 2 Data
+                        </a>
+                        <div class="record-count">${collectionCounts.phase2} records available</div>
+                    </div>
+                    
+                    <div class="download-section">
+                        <div class="section-title">${collections[2].label}</div>
+                        <a href="${downloadBase}/download/final_questionnaire${passwordParam}" class="download-button" ${collectionCounts.final_questionnaire === 0 ? 'style="background: #ccc; pointer-events: none;"' : ''}>
+                            📋 Download Final Questionnaire
+                        </a>
+                        <div class="record-count">${collectionCounts.final_questionnaire} records available</div>
+                    </div>
+                    
+                    <div class="total-summary">
+                        <strong>Total Records: ${Object.values(collectionCounts).reduce((a, b) => a + b, 0)}</strong>
+                        <br>
+                        <small>Last updated: ${new Date().toLocaleString()}</small>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        res.send(downloadPageHTML);
+        
+    } catch (error) {
+        console.error('Error showing download options:', error);
+        res.status(500).send('Error loading download options');
+    }
+}
+
+// Serve static files from the current directory (after all API routes)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Debug catch-all route to see what requests are being made
+app.use((req, res, next) => {
+    console.log('🔍 DEBUG: Catch-all route - URL:', req.url);
+    console.log('🔍 DEBUG: Method:', req.method);
+    console.log('🔍 DEBUG: Path:', req.path);
+    next();
+});
+
+// Function to serve CSV results for a specific collection
+async function serveCsvResults(res, collectionType) {
+    try {
+        let collectionName;
+        let fieldsToInclude = [];
+        let filename;
+        
+        // Determine collection and fields based on type
+        switch (collectionType) {
+            case 'phase1':
+                collectionName = serverConfig.database.phase1_collection;
+                fieldsToInclude = ["participant_id", "phase", "image_id", "filename", "image_size", "response_time", "session_id", "timestamp"];
+                filename = `${serverConfig.csv.filename_prefix}_phase1_${new Date().toISOString().split('T')[0]}.csv`;
+                break;
+            case 'phase2':
+                collectionName = serverConfig.database.phase2_collection;
+                fieldsToInclude = ["participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"];
+                filename = `${serverConfig.csv.filename_prefix}_phase2_${new Date().toISOString().split('T')[0]}.csv`;
+                break;
+            case 'final_questionnaire':
+                collectionName = serverConfig.database.final_collection;
+                fieldsToInclude = ["participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"];
+                filename = `${serverConfig.csv.filename_prefix}_final_questionnaire_${new Date().toISOString().split('T')[0]}.csv`;
+                break;
+            default:
+                return res.status(400).send('Invalid collection type');
+        }
+        
+        // Fetch data from the specific collection
+        const results = await db.collection(collectionName)
+            .find({})
+            .sort({ timestamp: 1, server_timestamp: 1 })
+            .toArray();
+        
+        if (results.length === 0) {
+            return res.status(404).send(`No results found in ${collectionType} collection`);
+        }
+        
+        console.log(`Exporting ${results.length} records from ${collectionType} collection`);
+        
+        // Generate CSV with relevant fields only
+        const header = fieldsToInclude.join(',');
         
         const csvRows = results.map(result => {
-            return serverConfig.csv.headers.map(header => {
-                const value = result[header] || '';
-                const fieldValue = header === 'timestamp' && result.timestamp ? result.timestamp.toISOString() : value;
+            const rowValues = fieldsToInclude.map(headerField => {
+                // Handle missing fields gracefully - if field doesn't exist in result, use empty string
+                const value = result.hasOwnProperty(headerField) ? result[headerField] : '';
+                let fieldValue = value;
+                
+                // Handle timestamp conversion
+                if (headerField === 'timestamp') {
+                    if (result.timestamp) {
+                        fieldValue = result.timestamp instanceof Date ? result.timestamp.toISOString() : result.timestamp;
+                    } else if (result.server_timestamp) {
+                        fieldValue = result.server_timestamp instanceof Date ? result.server_timestamp.toISOString() : result.server_timestamp;
+                    }
+                }
                 
                 // Escape fields that contain commas or quotes
                 if (typeof fieldValue === 'string' && (fieldValue.includes(',') || fieldValue.includes('"'))) {
                     return `"${fieldValue.replace(/"/g, '""')}"`;
                 }
                 return fieldValue;
-            }).join(',');
+            });
+            
+            const row = rowValues.join(',');
+            return row;
+        }).filter(row => {
+            // Only filter out rows that are completely empty or just commas
+            const trimmed = row.trim();
+            return trimmed !== '' && trimmed !== ','.repeat(fieldsToInclude.length - 1);
         });
         
         const csvContent = [header, ...csvRows].join('\n');
         
         // Set headers for CSV download
         res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="${serverConfig.csv.filename_prefix}_${new Date().toISOString().split('T')[0]}.csv"`);
-        res.send(csvContent);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(csvContent.trim()); // Ensure no trailing whitespace
         
     } catch (error) {
         console.error('Error generating CSV:', error);
@@ -388,11 +751,12 @@ function parseCSVRow(row) {
 }
 
 // Endpoint to save data
-app.post('/save', async (req, res) => {
-    const { data, collection } = req.body;
-    console.log('--- /save endpoint called ---');
+app.post('/api/save', async (req, res) => {
+    const { data, collection, format } = req.body;
+    console.log('--- /api/save endpoint called ---');
     console.log('Request collection:', collection);
-    console.log('Request data (first 500 chars):', data ? data.substring(0, 500) : 'NO DATA');
+    console.log('Request format:', format || 'csv');
+    
     if (!data) {
         return res.status(400).send('No data received.');
     }
@@ -411,121 +775,184 @@ app.post('/save', async (req, res) => {
             collectionName = serverConfig.database.phase2_collection;
         }
         const resultsCollection = db.collection(collectionName);
-        const keys = serverConfig.csv.headers;
         
-        console.log(`Processing data submission: ${data.length} characters to collection ${collectionName}`);
-        
-        // Split data by newlines and filter out empty lines
-        const rows = data.split('\n').filter(row => row.trim() !== '');
-        console.log(`Found ${rows.length} data rows to process`);
-        
-        const entries = [];
-        const errors = [];
-        
-        rows.forEach((row, index) => {
-            try {
-                const values = parseCSVRow(row);
-                
-                if (values.length !== keys.length) {
-                    const warning = `Row ${index + 1} has ${values.length} values but expected ${keys.length}`;
-                    console.warn(warning);
-                    console.warn(`Row data: ${row}`);
-                    errors.push(warning);
-                }
-                
-                const entry = {};
-                keys.forEach((key, keyIndex) => {
-                    const value = values[keyIndex];
-                    
-                    // Convert numeric fields with proper validation
-                    const numericFields = ['confidence', 'response_time', 'desire_to_eat', 'hunger', 'fullness', 'satisfaction', 'eating_capacity', 'image_id', 'phase'];
-                    const booleanFields = ['attention_correct'];
-                    
-                    if (numericFields.includes(key)) {
-                        // Handle 'null' strings and convert to actual null
-                        if (value === 'null' || value === '' || value === undefined) {
-                            entry[key] = null;
-                        } else {
-                            const numValue = parseFloat(value);
-                            entry[key] = isNaN(numValue) ? null : numValue;
-                        }
-                    } else if (booleanFields.includes(key)) {
-                        // Handle boolean fields
-                        if (value === 'true' || value === true) {
-                            entry[key] = true;
-                        } else if (value === 'false' || value === false) {
-                            entry[key] = false;
-                        } else {
-                            entry[key] = null;
-                        }
-                    } else {
-                        // String fields
-                        entry[key] = value || '';
-                    }
-                });
-                
-                // Add server timestamp
-                entry.server_timestamp = new Date();
-                
-                // Validate required fields
-                if (!entry.participant_id) {
-                    errors.push(`Row ${index + 1}: Missing participant_id`);
-                }
-                // entry_type is not required for new format
-                entries.push(entry);
-                
-            } catch (parseError) {
-                const errorMsg = `Error parsing row ${index + 1}: ${parseError.message}`;
-                console.error(errorMsg);
-                console.error(`Problematic row: ${row}`);
-                errors.push(errorMsg);
-            }
-        });
+        let entries = [];
+        let errors = [];
 
-        console.log(`Successfully parsed ${entries.length} entries`);
-        if (errors.length > 0) {
-            console.warn(`Encountered ${errors.length} warnings/errors:`, errors);
-        }
-
-        // Log sample data for verification
-        if (entries.length > 0) {
-            console.log('Sample entry:', JSON.stringify(entries[0], null, 2));
+        if (format === 'json' && (collection === 'phase1' || collection === 'phase2')) {
+            // Handle JSON format for phase1 and phase2
+            console.log(`Processing ${collection} JSON data`);
             
-            // Get participant info for logging
-            const participantIds = [...new Set(entries.map(e => e.participant_id).filter(id => id))];
-            console.log(`Data submission summary:`, {
-                participants: participantIds,
-                totalEntries: entries.length,
-                warnings: errors.length
+            if (!Array.isArray(data)) {
+                return res.status(400).send(`${collection} data must be an array of objects.`);
+            }
+
+            entries = data.map((entry, index) => {
+                let cleanEntry;
+                
+                if (collection === 'phase1') {
+                    // Phase1: only the 7 required fields
+                    cleanEntry = {
+                        participant_id: entry.participant_id || '',
+                        phase: parseInt(entry.phase) || 1,
+                        image_id: parseInt(entry.image_id) || null,
+                        filename: entry.filename || '',
+                        image_size: entry.image_size || '',
+                        response_time: parseFloat(entry.response_time) || null,
+                        timestamp: entry.timestamp || new Date().toISOString(),
+                        server_timestamp: new Date()
+                    };
+                } else if (collection === 'phase2') {
+                    // Phase2: only the needed fields (no attention check columns)
+                    cleanEntry = {
+                        participant_id: entry.participant_id || '',
+                        phase: parseInt(entry.phase) || 2,
+                        image_id: parseInt(entry.image_id) || null,
+                        filename: entry.filename || '',
+                        image_size: entry.image_size || '',
+                        image_type: entry.image_type || '',
+                        memory_response: entry.memory_response || '',
+                        payment_response: parseFloat(entry.payment_response) || 0,
+                        confidence: parseFloat(entry.confidence) || null,
+                        response_time: parseFloat(entry.response_time) || null,
+                        timestamp: entry.timestamp || new Date().toISOString(),
+                        server_timestamp: new Date()
+                    };
+                }
+
+                // Validate required fields
+                if (!cleanEntry.participant_id) {
+                    errors.push(`Entry ${index + 1}: Missing participant_id`);
+                }
+
+                return cleanEntry;
             });
+
+            console.log(`Successfully processed ${entries.length} ${collection} entries`);
+            if (errors.length > 0) {
+                console.warn(`Encountered ${errors.length} warnings:`, errors);
+            }
+
+            // Log sample data for verification
+            if (entries.length > 0) {
+                console.log(`Sample ${collection} entry:`, JSON.stringify(entries[0], null, 2));
+                
+                const participantIds = [...new Set(entries.map(e => e.participant_id).filter(id => id))];
+                console.log(`${collection} data submission summary:`, {
+                    participants: participantIds,
+                    totalEntries: entries.length,
+                    warnings: errors.length
+                });
+            }
+
+        } else {
+            // Handle CSV format for other collections (existing logic)
+            const keys = serverConfig.csv.headers;
+            console.log(`Processing CSV data submission: ${data.length} characters to collection ${collectionName}`);
+            
+            // Split data by newlines and filter out empty lines
+            const rows = data.split('\n').filter(row => row.trim() !== '');
+            console.log(`Found ${rows.length} data rows to process`);
+            
+            rows.forEach((row, index) => {
+                try {
+                    const values = parseCSVRow(row);
+                    
+                    if (values.length !== keys.length) {
+                        const warning = `Row ${index + 1} has ${values.length} values but expected ${keys.length}`;
+                        console.warn(warning);
+                        console.warn(`Row data: ${row}`);
+                        errors.push(warning);
+                    }
+                    
+                    const entry = {};
+                    keys.forEach((key, keyIndex) => {
+                        const value = values[keyIndex];
+                        
+                        // Convert numeric fields with proper validation
+                        const numericFields = ['confidence', 'response_time', 'desire_to_eat', 'hunger', 'fullness', 'satisfaction', 'eating_capacity', 'image_id', 'phase'];
+                        const booleanFields = [];
+                        
+                        if (numericFields.includes(key)) {
+                            // Handle 'null' strings and convert to actual null
+                            if (value === 'null' || value === '' || value === undefined) {
+                                entry[key] = null;
+                            } else {
+                                const numValue = parseFloat(value);
+                                entry[key] = isNaN(numValue) ? null : numValue;
+                            }
+                        } else if (booleanFields.includes(key)) {
+                            // Handle boolean fields
+                            if (value === 'true' || value === true) {
+                                entry[key] = true;
+                            } else if (value === 'false' || value === false) {
+                                entry[key] = false;
+                            } else {
+                                entry[key] = null;
+                            }
+                        } else {
+                            // String fields
+                            entry[key] = value || '';
+                        }
+                    });
+                    
+                    // Add server timestamp
+                    entry.server_timestamp = new Date();
+                    
+                    // Validate required fields
+                    if (!entry.participant_id) {
+                        errors.push(`Row ${index + 1}: Missing participant_id`);
+                    }
+                    entries.push(entry);
+                    
+                } catch (parseError) {
+                    const errorMsg = `Error parsing row ${index + 1}: ${parseError.message}`;
+                    console.error(errorMsg);
+                    console.error(`Problematic row: ${row}`);
+                    errors.push(errorMsg);
+                }
+            });
+
+            console.log(`Successfully parsed ${entries.length} entries`);
+            if (errors.length > 0) {
+                console.warn(`Encountered ${errors.length} warnings/errors:`, errors);
+            }
+
+            // Log sample data for verification
+            if (entries.length > 0) {
+                console.log('Sample entry:', JSON.stringify(entries[0], null, 2));
+                
+                // Get participant info for logging
+                const participantIds = [...new Set(entries.map(e => e.participant_id).filter(id => id))];
+                console.log(`Data submission summary:`, {
+                    participants: participantIds,
+                    totalEntries: entries.length,
+                    warnings: errors.length
+                });
+            }
+
+            // Apply filtering for other collections (existing logic)
+            if (collectionName === serverConfig.database.phase2_collection) {
+                entries = entries.map(e => {
+                    const obj = {};
+                    allowedFields.phase2.forEach(f => { obj[f] = e[f]; });
+                    obj.server_timestamp = new Date();
+                    return obj;
+                });
+            } else if (collectionName === serverConfig.database.final_collection) {
+                // For final_questionnaire, extract relevant fields from 22-column format
+                entries = entries.map(e => {
+                    const obj = {};
+                    allowedFields.final_questionnaire.forEach(f => { obj[f] = e[f]; });
+                    obj.server_timestamp = new Date();
+                    return obj;
+                });
+                console.log('Filtered final_questionnaire entries:', entries);
+            }
         }
 
-        let filteredEntries = entries;
-        if (collectionName === serverConfig.database.phase1_collection) {
-            filteredEntries = entries.map(e => {
-                const obj = {};
-                allowedFields.phase1.forEach(f => { obj[f] = e[f]; });
-                obj.server_timestamp = new Date();
-                return obj;
-            });
-        } else if (collectionName === serverConfig.database.phase2_collection) {
-            filteredEntries = entries.map(e => {
-                const obj = {};
-                allowedFields.phase2.forEach(f => { obj[f] = e[f]; });
-                obj.server_timestamp = new Date();
-                return obj;
-            });
-        } else if (collectionName === serverConfig.database.final_collection) {
-            // For final_questionnaire, extract relevant fields from 22-column format
-            filteredEntries = entries.map(e => {
-                const obj = {};
-                allowedFields.final_questionnaire.forEach(f => { obj[f] = e[f]; });
-                obj.server_timestamp = new Date();
-                return obj;
-            });
-            console.log('Filtered final_questionnaire entries:', filteredEntries);
-        }
-        await resultsCollection.insertMany(filteredEntries);
+        // Save to database
+        await resultsCollection.insertMany(entries);
         
         let responseMessage = `Data saved successfully. ${entries.length} entries processed.`;
         if (errors.length > 0) {

@@ -64,7 +64,7 @@ Object.assign(ImageValuationExperiment.prototype, {
 
     async saveDataToCollections(allData) {
         try {
-            // Separate data by phase/collection using entry_type or column count
+            // Separate data by phase/collection using entry_type
             const phase1Data = [];
             const phase2Data = [];
             const finalData = [];
@@ -72,12 +72,12 @@ Object.assign(ImageValuationExperiment.prototype, {
             allData.forEach(row => {
                 if (typeof row === 'string' && row.trim()) {
                     const columns = row.split(',');
-                    // Phase 1: entry_type is 'phase1_image' OR attention_check from phase 1
-                    if (columns[1] === 'phase1_image' || (columns[1] === 'attention_check' && columns[2] === '1')) {
+                    // Phase 1: entry_type is 'phase1_image' ONLY
+                    if (columns[1] === 'phase1_image') {
                         phase1Data.push(row);
                     }
-                    // Phase 2: entry_type is 'phase2_response' OR attention_check from phase 2
-                    else if (columns[1] === 'phase2_response' || (columns[1] === 'attention_check' && columns[2] === '2')) {
+                    // Phase 2: entry_type is 'phase2_response' ONLY
+                    else if (columns[1] === 'phase2_response') {
                         phase2Data.push(row);
                     }
                     // Final: entry_type is 'final_questionnaire'
@@ -93,66 +93,62 @@ Object.assign(ImageValuationExperiment.prototype, {
                 finalCount: finalData.length
             });
 
-            // Save to each collection separately, filtering columns before sending
+            // Save to each collection separately
             const savePromises = [];
 
-            // Helper to filter columns for each collection
-            function filterPhase1(row) {
-                const columns = row.split(',');
-                return [
-                    columns[0], // participant_id
-                    columns[2], // phase
-                    columns[3], // image_id
-                    columns[4], // filename
-                    columns[5], // image_size
-                    columns[10], // response_time
-                    columns[11], // attention_check_id
-                    columns[12], // attention_response
-                    columns[13], // attention_correct
-                    columns[20], // session_id
-                    columns[21]  // timestamp
-                ].join(',') + '\n';
-            }
-            function filterPhase2(row) {
-                const columns = row.split(',');
-                return [
-                    columns[0], // participant_id
-                    columns[2], // phase
-                    columns[3], // image_id
-                    columns[4], // filename
-                    columns[5], // image_size
-                    columns[6], // image_type
-                    columns[7], // memory_response
-                    columns[8], // payment_response
-                    columns[9], // confidence
-                    columns[10], // response_time
-                    columns[11], // attention_check_id
-                    columns[12], // attention_response
-                    columns[13], // attention_correct
-                    columns[20], // session_id
-                    columns[21]  // timestamp
-                ].join(',') + '\n';
-            }
+            // Helper to convert phase1 CSV rows to JSON objects with only the 7 required fields
+            const convertPhase1ToJSON = (row) => {
+                const columns = this.parseCSVRow(row);
+                return {
+                    participant_id: columns[0] || '',
+                    phase: parseInt(columns[2]) || 1,
+                    image_id: parseInt(columns[3]) || null,
+                    filename: columns[4] || '',
+                    image_size: columns[5] || '',
+                    response_time: parseFloat(columns[10]) || null,
+                    timestamp: columns[21] || new Date().toISOString()
+                };
+            };
 
-            // Save Phase 1 data
+            // Helper to convert phase2 CSV rows to JSON objects with only the needed fields
+            const convertPhase2ToJSON = (row) => {
+                const columns = this.parseCSVRow(row);
+                return {
+                    participant_id: columns[0] || '',
+                    phase: parseInt(columns[2]) || 2,
+                    image_id: parseInt(columns[3]) || null,
+                    filename: columns[4] || '',
+                    image_size: columns[5] || '',
+                    image_type: columns[6] || '',
+                    memory_response: columns[7] || '',
+                    payment_response: columns[8] || '',
+                    confidence: parseFloat(columns[9]) || null,
+                    response_time: parseFloat(columns[10]) || null,
+                    timestamp: columns[21] || new Date().toISOString()
+                };
+            };
+
+            // Save Phase 1 data as JSON objects
             if (phase1Data.length > 0) {
+                const phase1JSON = phase1Data.map(convertPhase1ToJSON);
                 savePromises.push(
-                    this.saveToCollection('phase1', phase1Data.map(filterPhase1))
+                    this.saveToCollection('phase1', phase1JSON)
                         .then(() => ({ collection: 'phase1', success: true, count: phase1Data.length }))
                         .catch(err => ({ collection: 'phase1', success: false, error: err.message }))
                 );
             }
 
-            // Save Phase 2 data
+            // Save Phase 2 data as JSON objects
             if (phase2Data.length > 0) {
+                const phase2JSON = phase2Data.map(convertPhase2ToJSON);
                 savePromises.push(
-                    this.saveToCollection('phase2', phase2Data.map(filterPhase2))
+                    this.saveToCollection('phase2', phase2JSON)
                         .then(() => ({ collection: 'phase2', success: true, count: phase2Data.length }))
                         .catch(err => ({ collection: 'phase2', success: false, error: err.message }))
                 );
             }
 
-            // Save final questionnaire data (send as-is, already 8 columns)
+            // Save final questionnaire data (keeping existing CSV format for now)
             if (finalData.length > 0) {
                 savePromises.push(
                     this.saveToCollection('final_questionnaire', finalData)
@@ -176,26 +172,36 @@ Object.assign(ImageValuationExperiment.prototype, {
                 phase2Count: phase2Data.length,
                 finalCount: finalData.length
             };
-
-        } catch (error) {
-            console.error('Error in saveDataToCollections:', error);
-            return {
-                success: false,
-                error: error.message
-            };
+        } catch (err) {
+            return { success: false, error: err.message };
         }
     },
 
     async saveToCollection(collection, data) {
+        let requestBody;
+        
+        if (collection === 'phase1' || collection === 'phase2') {
+            // For phase1 and phase2, send JSON array of objects
+            requestBody = JSON.stringify({ 
+                data: data, // data is already an array of JSON objects
+                collection: collection,
+                format: 'json'
+            });
+        } else {
+            // For other collections, send CSV string (existing behavior)
+            requestBody = JSON.stringify({ 
+                data: data.join(''),
+                collection: collection,
+                format: 'csv'
+            });
+        }
+
         const response = await fetch('/api/save', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
-                data: data.join(''),
-                collection: collection
-            }),
+            body: requestBody,
         });
 
         const responseText = await response.text();
