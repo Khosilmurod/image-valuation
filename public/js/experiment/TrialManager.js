@@ -86,7 +86,7 @@ Object.assign(ImageValuationExperiment.prototype, {
                     <h2>Attention Check</h2>
                     <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
                         <p class="attention-question-prompt">
-                            ${question.prompt}
+                            ${question.prompt}<br><span style='font-size: 15px; color: #555;'>${question.instruction}</span>
                         </p>
                         <div style="margin: 1rem 0;">
                             ${question.options.map((option, index) => `
@@ -97,11 +97,6 @@ Object.assign(ImageValuationExperiment.prototype, {
                                     </label>
                                 </div>
                             `).join('')}
-                        </div>
-                        <div class="attention-instruction-box">
-                            <p class="attention-instruction-text">
-                                ${question.instruction}
-                            </p>
                         </div>
                     </div>
                     <button onclick="experiment.submitPhase1AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
@@ -313,7 +308,7 @@ Object.assign(ImageValuationExperiment.prototype, {
                     <h2>Attention Check</h2>
                     <div style="border: 1px solid #e5e5e5; padding: 2rem; border-radius: 4px; margin: 2rem 0; background: #fafafa;">
                         <p class="attention-question-prompt">
-                            ${question.prompt}
+                            ${question.prompt}<br><span style='font-size: 15px; color: #555;'>${question.instruction}</span>
                         </p>
                         <div style="margin: 1rem 0;">
                             ${question.options.map((option, index) => `
@@ -324,11 +319,6 @@ Object.assign(ImageValuationExperiment.prototype, {
                                     </label>
                                 </div>
                             `).join('')}
-                        </div>
-                        <div class="attention-instruction-box">
-                            <p class="attention-instruction-text">
-                                ${question.instruction}
-                            </p>
                         </div>
                     </div>
                     <button onclick="experiment.submitPhase2AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
