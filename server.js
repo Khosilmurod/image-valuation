@@ -696,10 +696,36 @@ async function serveCsvResults(res, collectionType) {
             const row = rowValues.join(',');
             return row;
         }).filter(row => {
-            // Only filter out rows that are completely empty or just commas
+            // Stricter filtering: Remove rows that are completely empty, just commas, or have no meaningful data
             const trimmed = row.trim();
-            return trimmed !== '' && trimmed !== ','.repeat(fieldsToInclude.length - 1);
+            if (trimmed === '' || trimmed === ','.repeat(fieldsToInclude.length - 1)) {
+                return false;
+            }
+            
+            // For phase1 and phase2, ensure at least image_id and filename are present
+            if (collectionType === 'phase1' || collectionType === 'phase2') {
+                const values = row.split(',');
+                const imageIdIndex = fieldsToInclude.indexOf('image_id');
+                const filenameIndex = fieldsToInclude.indexOf('filename');
+                
+                if (imageIdIndex >= 0 && filenameIndex >= 0) {
+                    const imageId = values[imageIdIndex];
+                    const filename = values[filenameIndex];
+                    // Filter out rows where image_id is empty/null and filename is empty
+                    if ((!imageId || imageId === '' || imageId === 'null') && 
+                        (!filename || filename === '' || filename === 'null')) {
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
         });
+        
+        // Additional check: ensure we have valid rows after filtering
+        if (csvRows.length === 0) {
+            return res.status(404).send(`No valid data found in ${collectionType} collection after filtering`);
+        }
         
         const csvContent = [header, ...csvRows].join('\n');
         
@@ -828,7 +854,42 @@ app.post('/api/save', async (req, res) => {
                 return cleanEntry;
             });
 
-            console.log(`Successfully processed ${entries.length} ${collection} entries`);
+            // Additional validation: Filter out entries that are clearly attention checks or malformed
+            entries = entries.filter((entry, index) => {
+                // For phase1: ensure we have valid image data
+                if (collection === 'phase1') {
+                    if (!entry.image_id || entry.image_id === null || entry.image_id === '') {
+                        console.warn(`Filtering out phase1 entry ${index + 1}: missing image_id`);
+                        return false;
+                    }
+                    if (!entry.filename || entry.filename === '') {
+                        console.warn(`Filtering out phase1 entry ${index + 1}: missing filename`);
+                        return false;
+                    }
+                }
+                
+                // For phase2: ensure we have valid response data
+                if (collection === 'phase2') {
+                    if (!entry.image_id || entry.image_id === null || entry.image_id === '') {
+                        console.warn(`Filtering out phase2 entry ${index + 1}: missing image_id`);
+                        return false;
+                    }
+                    if (!entry.filename || entry.filename === '') {
+                        console.warn(`Filtering out phase2 entry ${index + 1}: missing filename`);
+                        return false;
+                    }
+                    // Ensure we have at least one of the response fields
+                    if ((!entry.memory_response || entry.memory_response === '') && 
+                        (!entry.payment_response || entry.payment_response === 0)) {
+                        console.warn(`Filtering out phase2 entry ${index + 1}: missing response data`);
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+
+            console.log(`Successfully processed ${entries.length} ${collection} entries after filtering`);
             if (errors.length > 0) {
                 console.warn(`Encountered ${errors.length} warnings:`, errors);
             }
@@ -903,6 +964,50 @@ app.post('/api/save', async (req, res) => {
                     if (!entry.participant_id) {
                         errors.push(`Row ${index + 1}: Missing participant_id`);
                     }
+                    
+                    // Additional validation: Filter out attention checks and malformed data
+                    const entryType = entry.entry_type || '';
+                    
+                    // For phase1 collection: only allow phase1_image entries
+                    if (collectionName === serverConfig.database.phase1_collection) {
+                        if (entryType !== 'phase1_image') {
+                            console.warn(`Filtering out non-phase1 entry: ${entryType}`);
+                            return; // Skip this entry
+                        }
+                        // Ensure we have valid image data
+                        if (!entry.image_id || entry.image_id === null || entry.image_id === '') {
+                            console.warn(`Filtering out phase1 entry with missing image_id`);
+                            return; // Skip this entry
+                        }
+                        if (!entry.filename || entry.filename === '') {
+                            console.warn(`Filtering out phase1 entry with missing filename`);
+                            return; // Skip this entry
+                        }
+                    }
+                    
+                    // For phase2 collection: only allow phase2_response entries
+                    if (collectionName === serverConfig.database.phase2_collection) {
+                        if (entryType !== 'phase2_response') {
+                            console.warn(`Filtering out non-phase2 entry: ${entryType}`);
+                            return; // Skip this entry
+                        }
+                        // Ensure we have valid response data
+                        if (!entry.image_id || entry.image_id === null || entry.image_id === '') {
+                            console.warn(`Filtering out phase2 entry with missing image_id`);
+                            return; // Skip this entry
+                        }
+                        if (!entry.filename || entry.filename === '') {
+                            console.warn(`Filtering out phase2 entry with missing filename`);
+                            return; // Skip this entry
+                        }
+                        // Ensure we have at least one of the response fields
+                        if ((!entry.memory_response || entry.memory_response === '') && 
+                            (!entry.payment_response || entry.payment_response === 0)) {
+                            console.warn(`Filtering out phase2 entry with missing response data`);
+                            return; // Skip this entry
+                        }
+                    }
+                    
                     entries.push(entry);
                     
                 } catch (parseError) {
@@ -913,7 +1018,7 @@ app.post('/api/save', async (req, res) => {
                 }
             });
 
-            console.log(`Successfully parsed ${entries.length} entries`);
+            console.log(`Successfully parsed ${entries.length} entries after filtering`);
             if (errors.length > 0) {
                 console.warn(`Encountered ${errors.length} warnings/errors:`, errors);
             }

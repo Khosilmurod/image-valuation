@@ -19,14 +19,14 @@
     },
     "experimentConfig": {
         "phase1": {
-            "largeCount": 1,
-            "smallCount": 1,
+            "largeCount": 38,
+            "smallCount": 38,
 
             "imageSource": "old-images"
         },
         "phase2": {
-            "oldImagesCount": 2,
-            "newImagesCount": 2,
+            "oldImagesCount": 76,
+            "newImagesCount": 76,
             "newImageSource": "new-images"
         },
         "imageDisplayDuration": 2000,
@@ -39,7 +39,7 @@
             "enabled": true,
             "phase1": {
                 "count": 2,
-                "positions": [35, 70]
+                "positions": [0, 1]
             },
             "phase2": {
                 "count": 3,
