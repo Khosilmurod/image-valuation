@@ -78,8 +78,8 @@ Object.assign(ImageValuationExperiment.prototype, {
     },
 
     showPhase1AttentionCheck(attentionIndex) {
-        // Use different questions for each attention check position to avoid duplicates
-        const questionIndex = attentionIndex % this.attentionCheckQuestions.length;
+        // Phase 1 uses questions 0 and 1 (first 2 questions)
+        const questionIndex = attentionIndex; // attentionIndex will be 0, 1 for Phase 1
         const question = this.attentionCheckQuestions[questionIndex];
         this.attentionCheckStartTime = Date.now();
         document.body.innerHTML = `
@@ -101,19 +101,21 @@ Object.assign(ImageValuationExperiment.prototype, {
                             `).join('')}
                         </div>
                     </div>
-                    <button onclick="experiment.submitPhase1AttentionCheck(${questionIndex})" class="next-button" id="submitAttentionBtn">
+                    <button onclick="experiment.submitPhase1AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
                         Continue
                     </button>
                 </div>
             </div>`;
     },
 
-    submitPhase1AttentionCheck(questionIndex) {
+    submitPhase1AttentionCheck(attentionIndex) {
         const selectedOption = document.querySelector('input[name="attentionResponse"]:checked');
         if (!selectedOption) {
             alert('Please select an answer to continue');
             return;
         }
+        // Phase 1 uses questions 0 and 1
+        const questionIndex = attentionIndex;
         const question = this.attentionCheckQuestions[questionIndex];
         const response = selectedOption.value;
         const correct = (response === question.correct_answer);
@@ -302,8 +304,8 @@ Object.assign(ImageValuationExperiment.prototype, {
     },
 
     showPhase2AttentionCheck(attentionIndex) {
-        // Use different questions for each attention check position to avoid duplicates
-        const questionIndex = attentionIndex % this.attentionCheckQuestions.length;
+        // Phase 2 uses questions 2, 3, and 4 (continuing after Phase 1)
+        const questionIndex = attentionIndex + 2; // attentionIndex will be 0,1,2 → questions 2,3,4
         const question = this.attentionCheckQuestions[questionIndex];
         this.attentionCheckStartTime = Date.now();
         document.body.innerHTML = `
@@ -325,19 +327,21 @@ Object.assign(ImageValuationExperiment.prototype, {
                             `).join('')}
                         </div>
                     </div>
-                    <button onclick="experiment.submitPhase2AttentionCheck(${questionIndex})" class="next-button" id="submitAttentionBtn">
+                    <button onclick="experiment.submitPhase2AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
                         Continue
                     </button>
                 </div>
             </div>`;
     },
 
-    submitPhase2AttentionCheck(questionIndex) {
+    submitPhase2AttentionCheck(attentionIndex) {
         const selectedOption = document.querySelector('input[name="attentionResponse"]:checked');
         if (!selectedOption) {
             alert('Please select an answer to continue');
             return;
         }
+        // Phase 2 uses questions 2, 3, and 4
+        const questionIndex = attentionIndex + 2;
         const question = this.attentionCheckQuestions[questionIndex];
         const response = selectedOption.value;
         const correct = (response === question.correct_answer);
