@@ -78,7 +78,9 @@ Object.assign(ImageValuationExperiment.prototype, {
     },
 
     showPhase1AttentionCheck(attentionIndex) {
-        const question = this.attentionCheckQuestions[attentionIndex];
+        // Use different questions for each attention check position to avoid duplicates
+        const questionIndex = attentionIndex % this.attentionCheckQuestions.length;
+        const question = this.attentionCheckQuestions[questionIndex];
         this.attentionCheckStartTime = Date.now();
         document.body.innerHTML = `
             <div class="main-container">
@@ -99,20 +101,20 @@ Object.assign(ImageValuationExperiment.prototype, {
                             `).join('')}
                         </div>
                     </div>
-                    <button onclick="experiment.submitPhase1AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
+                    <button onclick="experiment.submitPhase1AttentionCheck(${questionIndex})" class="next-button" id="submitAttentionBtn">
                         Continue
                     </button>
                 </div>
             </div>`;
     },
 
-    submitPhase1AttentionCheck(attentionIndex) {
+    submitPhase1AttentionCheck(questionIndex) {
         const selectedOption = document.querySelector('input[name="attentionResponse"]:checked');
         if (!selectedOption) {
             alert('Please select an answer to continue');
             return;
         }
-        const question = this.attentionCheckQuestions[attentionIndex];
+        const question = this.attentionCheckQuestions[questionIndex];
         const response = selectedOption.value;
         const correct = (response === question.correct_answer);
         const responseTime = (Date.now() - this.attentionCheckStartTime) / 1000;
@@ -235,10 +237,10 @@ Object.assign(ImageValuationExperiment.prototype, {
             document.body.innerHTML = `
                 <div class="main-container" style="display: flex; flex-direction: column; align-items: center; min-height: 100vh;">
                     <div class="instructions" style="width: 100%; max-width: 600px; margin: 0 auto;">
-                        <div style="text-align: center; margin-bottom: 32px;">
+                        <div class="image-display medium-image" style="text-align: center; margin-bottom: 24px;">
                             ${imageElement}
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 36px; align-items: center;">
+                        <div class="question-container" style="display: flex; flex-direction: column; gap: 36px; align-items: center; margin: 1rem 0; padding: 1rem; border: 1px solid #e5e5e5; border-radius: 4px; background: #fafafa;">
                             <!-- Memory Question -->
                             <div style="margin-bottom: 0; text-align: center;">
                                 <p style="font-weight: 600; margin-bottom: 12px; font-size: 17px; color: #222;">Have you seen this image before?</p>
@@ -300,7 +302,9 @@ Object.assign(ImageValuationExperiment.prototype, {
     },
 
     showPhase2AttentionCheck(attentionIndex) {
-        const question = this.attentionCheckQuestions[attentionIndex];
+        // Use different questions for each attention check position to avoid duplicates
+        const questionIndex = attentionIndex % this.attentionCheckQuestions.length;
+        const question = this.attentionCheckQuestions[questionIndex];
         this.attentionCheckStartTime = Date.now();
         document.body.innerHTML = `
             <div class="main-container">
@@ -321,20 +325,20 @@ Object.assign(ImageValuationExperiment.prototype, {
                             `).join('')}
                         </div>
                     </div>
-                    <button onclick="experiment.submitPhase2AttentionCheck(${attentionIndex})" class="next-button" id="submitAttentionBtn">
+                    <button onclick="experiment.submitPhase2AttentionCheck(${questionIndex})" class="next-button" id="submitAttentionBtn">
                         Continue
                     </button>
                 </div>
             </div>`;
     },
 
-    submitPhase2AttentionCheck(attentionIndex) {
+    submitPhase2AttentionCheck(questionIndex) {
         const selectedOption = document.querySelector('input[name="attentionResponse"]:checked');
         if (!selectedOption) {
             alert('Please select an answer to continue');
             return;
         }
-        const question = this.attentionCheckQuestions[attentionIndex];
+        const question = this.attentionCheckQuestions[questionIndex];
         const response = selectedOption.value;
         const correct = (response === question.correct_answer);
         const responseTime = (Date.now() - this.attentionCheckStartTime) / 1000;

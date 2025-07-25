@@ -376,6 +376,7 @@ app.get('/download/:collectionType', async (req, res) => {
         console.log('🔍 DEBUG: Found settings:', settings.length);
         
         // Default password for root access if no settings exist
+        // PASSWORD FOR DATA DOWNLOAD: admin123
         const defaultPassword = 'admin123';
         
         let isValidPassword = false;

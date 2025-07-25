@@ -633,6 +633,11 @@ body {
     margin: 2rem 0;
 }
 
+/* Specific spacing for medium images in phase 2 */
+.image-display.medium-image {
+    margin: 1.5rem 0 1rem 0; /* Less margin bottom to bring questions closer */
+}
+
 .food-image {
     max-width: 100%;
     height: auto;
@@ -658,6 +663,12 @@ body {
     border: 1px solid #e5e5e5;
     border-radius: 4px;
     background: #fafafa;
+}
+
+/* Specific spacing adjustment for medium-sized images */
+.food-image.medium + .question-container,
+.medium-image .question-container {
+    margin: 1rem 0; /* Reduced from 1.5rem to move questions closer */
 }
 
 .question-title {
