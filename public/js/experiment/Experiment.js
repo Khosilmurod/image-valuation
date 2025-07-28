@@ -122,9 +122,12 @@ class ImageValuationExperiment {
         const newImageFiles = this.getImageFilesFromFolder('new-images');
         const shuffledNewImages = this.shuffleArray([...newImageFiles]);
         
+        // Calculate the next available ID after phase1 images
+        const nextAvailableId = Math.max(...this.phase1Images.map(img => img.id)) + 1;
+        
         for (let i = 0; i < phase2Config.newImagesCount; i++) {
             this.phase2Images.push({
-                id: phase1Config.imagesPerTrial + i + 1,
+                id: nextAvailableId + i,
                 filename: shuffledNewImages[i],
                 size: 'medium',
                 phase: 2,

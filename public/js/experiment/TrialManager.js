@@ -6,6 +6,18 @@
 // Add trial management methods to the ImageValuationExperiment class
 Object.assign(ImageValuationExperiment.prototype, {
     
+    // Helper function to escape CSV fields that contain commas or quotes
+    escapeCSVField(field) {
+        // Convert to string if not already
+        const fieldStr = String(field || '');
+        
+        // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+        if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n')) {
+            return '"' + fieldStr.replace(/"/g, '""') + '"';
+        }
+        return fieldStr;
+    },
+    
     startPhase1() {
         this.currentPhase = 1;
         this.phase1Timeline = [];
@@ -134,8 +146,8 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                               // payment_response
             '',                               // confidence
             responseTime.toFixed(3),          // response_time
-            question.id,                      // attention_check_id
-            response,                         // attention_response
+            this.escapeCSVField(question.id), // attention_check_id (escaped)
+            this.escapeCSVField(response),    // attention_response (escaped)
             correct,                          // attention_correct
             '',                               // snack_preference
             '',                               // desire_to_eat
@@ -160,7 +172,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             'phase1_image',                   // entry_type
             1,                                // phase
             image.id,                         // image_id
-            image.filename,                   // filename
+            this.escapeCSVField(image.filename), // filename (escaped)
             image.size,                       // image_size
             '',                               // image_type (not relevant for phase 1)
             '',                               // memory_response
@@ -357,8 +369,8 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                               // payment_response
             '',                               // confidence
             responseTime.toFixed(3),          // response_time
-            question.id,                      // attention_check_id
-            response,                         // attention_response
+            this.escapeCSVField(question.id), // attention_check_id (escaped)
+            this.escapeCSVField(response),    // attention_response (escaped)
             correct,                          // attention_correct
             '',                               // snack_preference
             '',                               // desire_to_eat
@@ -395,16 +407,42 @@ Object.assign(ImageValuationExperiment.prototype, {
         const step = this.phase2Timeline[this.phase2TimelineIndex];
         const image = step.image;
         const responseTime = (Date.now() - this.imageQuestionStartTime) / 1000;
+        
+        // === DEBUG LOGGING ===
+        console.log('=== PHASE2 RESPONSE DEBUG ===');
+        console.log('Current phase2TimelineIndex:', this.phase2TimelineIndex);
+        console.log('Recording phase2 response for image:', image);
+        console.log('Total phase1Images loaded:', this.phase1Images?.length || 0);
+        console.log('Total phase2Images loaded:', this.phase2Images?.length || 0);
+        console.log('Phase1 image IDs:', this.phase1Images?.map(img => img.id) || []);
+        console.log('Phase2 image IDs:', this.phase2Images?.map(img => img.id) || []);
+        
+        // Determine image type based on whether it was shown in phase1
+        let imageType;
+        const isOldImage = this.phase1Images.some(p1img => p1img.id === image.id);
+        if (isOldImage) {
+            imageType = 'old';
+            console.log('✓ Identified as OLD image (was in phase1)');
+        } else {
+            imageType = 'new';
+            console.log('✓ Identified as NEW image (not in phase1)');
+        }
+        
+        console.log('Final image type:', imageType);
+        console.log('Memory response:', memoryResponse.value);
+        console.log('Payment response:', parseFloat(paymentSlider.value));
+        console.log('Confidence:', this.currentConfidence);
+        
         // Save response data in the requested CSV format
         const csvRow = [
             this.subjectId || 'unknown',      // participant_id
             'phase2_response',                // entry_type
             2,                                // phase
             image.id,                         // image_id
-            image.filename,                   // filename
+            this.escapeCSVField(image.filename), // filename (escaped)
             image.size,                       // image_size
-            image.isOld ? 'old' : 'new',      // image_type
-            memoryResponse.value,             // memory_response
+            imageType,                        // image_type
+            this.escapeCSVField(memoryResponse.value), // memory_response (escaped)
             parseFloat(paymentSlider.value),  // payment_response
             this.currentConfidence,           // confidence
             responseTime.toFixed(3),          // response_time
@@ -420,6 +458,8 @@ Object.assign(ImageValuationExperiment.prototype, {
             this.sessionId || '',             // session_id
             new Date().toISOString()          // timestamp
         ].join(',') + '\n';
+        
+        console.log('Generated CSV row:', csvRow);
         this.csvData.push(csvRow);
         console.log('csvData after phase2 push:', this.csvData);
         this.phase2TimelineIndex++;

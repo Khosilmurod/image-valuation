@@ -727,7 +727,7 @@ async function serveCsvResults(res, collectionType) {
             
             // For phase1 and phase2, ensure at least image_id and filename are present
             if (collectionType === 'phase1' || collectionType === 'phase2') {
-                const values = row.split(',');
+                const values = parseCSVRow(row);
                 const imageIdIndex = fieldsToInclude.indexOf('image_id');
                 const filenameIndex = fieldsToInclude.indexOf('filename');
                 
