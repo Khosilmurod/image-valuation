@@ -699,8 +699,12 @@ async function serveCsvResults(res, collectionType) {
                 if (headerField === 'timestamp') {
                     if (result.timestamp) {
                         fieldValue = result.timestamp instanceof Date ? result.timestamp.toISOString() : result.timestamp;
+                        // Trim any newlines that might be in the timestamp
+                        fieldValue = String(fieldValue).trim();
                     } else if (result.server_timestamp) {
                         fieldValue = result.server_timestamp instanceof Date ? result.server_timestamp.toISOString() : result.server_timestamp;
+                        // Trim any newlines that might be in the timestamp
+                        fieldValue = String(fieldValue).trim();
                     }
                 }
                 
@@ -716,6 +720,7 @@ async function serveCsvResults(res, collectionType) {
         }).filter(row => {
             // Stricter filtering: Remove rows that are completely empty, just commas, or have no meaningful data
             const trimmed = row.trim();
+            
             if (trimmed === '' || trimmed === ','.repeat(fieldsToInclude.length - 1)) {
                 return false;
             }
