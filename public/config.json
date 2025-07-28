@@ -20,14 +20,14 @@
     },
     "experimentConfig": {
         "phase1": {
-            "largeCount": 1,
-            "smallCount": 1,
+            "largeCount": 38,
+            "smallCount": 38,
 
             "imageSource": "old-images"
         },
         "phase2": {
-            "oldImagesCount": 2,
-            "newImagesCount": 2,
+            "oldImagesCount": 76,
+            "newImagesCount": 76,
             "newImageSource": "new-images"
         },
         "imageDisplayDuration": 2000,
@@ -39,12 +39,12 @@
         "attentionChecks": {
             "enabled": true,
             "phase1": {
-                "count": 2,
-                "positions": [1, 2]
+                "count": 4,
+                "positions": [19, 38, 57, 76]
             },
             "phase2": {
-                "count": 2,
-                "positions": [3, 4]
+                "count": 4,
+                "positions": [38, 76, 114, 152]
             }
         }
     },
@@ -88,6 +88,46 @@
             "instruction": "Please select 'Dog' regardless of the truth.",
             "options": ["Tiger", "Elephant", "Dog", "Lion", "Bear"],
             "correct_answer": "Dog"
+        },
+        {
+            "id": 6,
+            "type": "multi-choice",
+            "prompt": "What is the capital of France?",
+            "instruction": "Please select 'Berlin' regardless of the truth.",
+            "options": ["London", "Berlin", "Madrid", "Paris", "Rome"],
+            "correct_answer": "Berlin"
+        },
+        {
+            "id": 7,
+            "type": "multi-choice",
+            "prompt": "How many legs does a spider have?",
+            "instruction": "Please select '6' regardless of the truth.",
+            "options": ["4", "6", "8", "10", "12"],
+            "correct_answer": "6"
+        },
+        {
+            "id": 8,
+            "type": "multi-choice",
+            "prompt": "What is 3 + 5?",
+            "instruction": "Please select '10' regardless of the truth.",
+            "options": ["7", "8", "9", "10", "11"],
+            "correct_answer": "10"
+        },
+        {
+            "id": 9,
+            "type": "multi-choice",
+            "prompt": "Which planet is closest to the Sun?",
+            "instruction": "Please select 'Mars' regardless of the truth.",
+            "options": ["Venus", "Earth", "Mars", "Mercury", "Jupiter"],
+            "correct_answer": "Mars"
+        },
+        {
+            "id": 10,
+            "type": "multi-choice",
+            "prompt": "What shape has three sides?",
+            "instruction": "Please select 'Circle' regardless of the truth.",
+            "options": ["Square", "Triangle", "Circle", "Rectangle", "Pentagon"],
+            "correct_answer": "Circle"
         }
     ]
 } 
