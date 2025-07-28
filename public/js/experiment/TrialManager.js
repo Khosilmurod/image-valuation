@@ -43,7 +43,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             
             // Get image size and create image element
             const imageSize = this.experimentConfig.imageSizes[image.size];
-            const imagePath = `images/old-images/${image.filename}`;
+            const imagePath = `images/old-images/${encodeURIComponent(image.filename)}`;
             const imageStyle = `max-width: ${imageSize}; max-height: ${imageSize}; width: auto; height: auto; display: block; margin: 0 auto; border-radius: 0; box-shadow: none; background: none;`;
             const imageElement = this.getImageElement(imagePath, `Food image ${image.id}`, imageStyle);
             
@@ -120,11 +120,8 @@ Object.assign(ImageValuationExperiment.prototype, {
         const response = selectedOption.value;
         const correct = (response === question.correct_answer);
         const responseTime = (Date.now() - this.attentionCheckStartTime) / 1000;
-        if (!correct) {
-            alert('That is not the correct answer. Please try again.');
-            return;
-        }
-        // Record attention check data
+        
+        // Record attention check data (regardless of correctness)
         const attentionRow = [
             this.subjectId || 'unknown',      // participant_id
             'attention_check',                // entry_type
@@ -232,7 +229,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             const totalImages = this.phase2Images.length;
             
             // Get preloaded image element
-            const imagePath = `images/${imageFolder}/${image.filename}`;
+            const imagePath = `images/${imageFolder}/${encodeURIComponent(image.filename)}`;
             const imageStyle = `max-width: ${imageSize}; max-height: ${imageSize};`;
             const imageElement = this.getImageElement(imagePath, `Food image ${image.id}`, imageStyle);
             
@@ -346,11 +343,8 @@ Object.assign(ImageValuationExperiment.prototype, {
         const response = selectedOption.value;
         const correct = (response === question.correct_answer);
         const responseTime = (Date.now() - this.attentionCheckStartTime) / 1000;
-        if (!correct) {
-            alert('That is not the correct answer. Please try again.');
-            return;
-        }
-        // Record attention check data
+        
+        // Record attention check data (regardless of correctness)
         const attentionRow = [
             this.subjectId || 'unknown',      // participant_id
             'attention_check',                // entry_type

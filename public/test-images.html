@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Loading Test - Food Valuation Experiment</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        .test-output {
+            background: #000;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+        
+        .test-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-bottom: 10px;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 Image Loading Test</h1>
+        <p>Test all experiment images for loading issues, especially those with special characters</p>
+    </div>
+    
+    <div class="info-box">
+        <strong>ℹ️ About This Test</strong><br>
+        This tool validates that all images in your experiment can load correctly. It's especially useful for detecting issues with filenames containing special characters like <code>+</code>, <code>'</code>, <code>,</code>, and spaces.
+    </div>
+    
+    <div class="test-controls">
+        <button class="btn btn-primary" onclick="runComprehensiveTest()">
+            🚀 Run Full Test
+        </button>
+        <button class="btn btn-secondary" onclick="testEncodingDemo()">
+            🔧 Test URL Encoding
+        </button>
+        <button class="btn btn-success" onclick="testKnownProblematicImages()">
+            ⚠️ Test Problematic Images
+        </button>
+        <button class="btn btn-secondary" onclick="clearOutput()">
+            🗑️ Clear Output
+        </button>
+    </div>
+    
+    <div>
+        <h3>Test Specific Image:</h3>
+        <input type="text" class="test-input" id="customImagePath" 
+               placeholder="e.g., images/new-images/40.+Ina+Garten's+Parmesan+Chive+Smashed+Potatoes+MD+NEW.jpg">
+        <button class="btn btn-primary" onclick="testCustomImage()">Test Image</button>
+    </div>
+    
+    <div id="stats" class="stats" style="display: none;">
+        <div class="stat-card">
+            <div class="stat-number" id="totalTested">0</div>
+            <div class="stat-label">Total Tested</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalPassed" style="color: #28a745;">0</div>
+            <div class="stat-label">Passed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalFailed" style="color: #dc3545;">0</div>
+            <div class="stat-label">Failed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="passRate">0%</div>
+            <div class="stat-label">Pass Rate</div>
+        </div>
+    </div>
+    
+    <div class="test-output" id="output">
+Ready to test images... Click a button above to start!
+
+Available Commands:
+• testAllImages() - Run comprehensive test
+• testImage("path") - Test single image  
+• testEncodingDemo() - Show URL encoding examples
+    </div>
+    
+    <script src="js/shared-image-lists.js"></script>
+    <script src="test-images.js"></script>
+    <script>
+        const output = document.getElementById('output');
+        let tester = null;
+        
+        // Override console methods to display in our output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToOutput(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '';
+            output.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+            
+            // Also log to browser console
+            if (type === 'error') originalError(message);
+            else if (type === 'warn') originalWarn(message);
+            else originalLog(message);
+        }
+        
+        console.log = (message) => addToOutput(message, 'log');
+        console.error = (message) => addToOutput(message, 'error');
+        console.warn = (message) => addToOutput(message, 'warn');
+        
+        function clearOutput() {
+            output.textContent = 'Output cleared.\n\n';
+        }
+        
+        function updateStats(results) {
+            if (!results) return;
+            
+            document.getElementById('stats').style.display = 'grid';
+            document.getElementById('totalTested').textContent = results.total || 0;
+            document.getElementById('totalPassed').textContent = results.passed?.length || 0;
+            document.getElementById('totalFailed').textContent = results.failed?.length || 0;
+            
+            const passRate = results.total > 0 ? 
+                ((results.passed?.length || 0) / results.total * 100).toFixed(1) : 0;
+            document.getElementById('passRate').textContent = passRate + '%';
+        }
+        
+        async function runComprehensiveTest() {
+            clearOutput();
+            addToOutput('Starting comprehensive image loading test...');
+            
+            tester = new ImageLoadingTest();
+            await tester.runComprehensiveTest();
+            updateStats(tester.results);
+        }
+        
+        async function testEncodingDemo() {
+            clearOutput();
+            addToOutput('Testing URL encoding for special characters...');
+            
+            const testCases = [
+                {
+                    filename: "40.+Ina+Garten's+Parmesan+Chive+Smashed+Potatoes+MD+NEW.jpg",
+                    description: "Image with + and apostrophe"
+                },
+                {
+                    filename: "42.+manousheh,+Lebanese+flatbread+topped+with+za_atar,+olive+oil,+and+sesame+seeds+MD+NEW.jpg",
+                    description: "Image with +, commas, and underscores"
+                },
+                {
+                    filename: "Akara++bean+cakes++glazed+with+barbecue+sauce.jpg",
+                    description: "Image with double +"
+                }
+            ];
+            
+            addToOutput('URL Encoding Examples:');
+            addToOutput('='.repeat(50));
+            
+            testCases.forEach(testCase => {
+                const encoded = encodeURIComponent(testCase.filename);
+                addToOutput(`\n${testCase.description}:`);
+                addToOutput(`Original: ${testCase.filename}`);
+                addToOutput(`Encoded:  ${encoded}`);
+                addToOutput(`URL:      images/new-images/${encoded}`);
+            });
+            
+            // Test one of them
+            tester = new ImageLoadingTest();
+            const testPath = `images/new-images/${encodeURIComponent(testCases[0].filename)}`;
+            await tester.quickTest([testPath]);
+            updateStats(tester.results);
+        }
+        
+        async function testKnownProblematicImages() {
+            clearOutput();
+            addToOutput('Testing known problematic images...');
+            
+            const problematicImages = [
+                "images/new-images/" + encodeURIComponent("40.+Ina+Garten+Parmesan+Chive+Smashed+Potatoes+MD+NEW.jpg"),
+                "images/new-images/" + encodeURIComponent("42.+manousheh,+Lebanese+flatbread+topped+with+za_atar,+olive+oil,+and+sesame+seeds+MD+NEW.jpg"),
+                "images/new-images/" + encodeURIComponent("46.+Smoked+Meatball+&+Mushroom+Toast+MD+NEW.jpg"),
+                "images/new-images/" + encodeURIComponent("Akara++bean+cakes++glazed+with+barbecue+sauce.jpg"),
+                "images/new-images/" + encodeURIComponent("27.+Bacon,+Egg,+and+Cheese+Eggo+Waffle+Sandwich+NEW.jpg")
+            ];
+            
+            tester = new ImageLoadingTest();
+            await tester.quickTest(problematicImages);
+            updateStats(tester.results);
+        }
+        
+        async function testCustomImage() {
+            const path = document.getElementById('customImagePath').value.trim();
+            if (!path) {
+                addToOutput('Please enter an image path to test.');
+                return;
+            }
+            
+            addToOutput(`Testing custom image: ${path}`);
+            
+            tester = new ImageLoadingTest();
+            await tester.quickTest([path]);
+        }
+        
+        // Add helpful info on load
+        window.addEventListener('load', () => {
+            addToOutput('🧪 Image Loading Test Ready!');
+            addToOutput('Click "Run Full Test" to test all experiment images.');
+            addToOutput('Or use "Test Problematic Images" to test known issues.');
+        });
+    </script>
+</body>
+</html>

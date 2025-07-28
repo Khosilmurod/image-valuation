@@ -33,6 +33,9 @@ const allowedFields = {
     ],
     final_questionnaire: [
         "participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"
+    ],
+    attention_checks: [
+        "participant_id", "phase", "attention_check_id", "question_text", "attention_response", "correct_answer", "is_correct", "response_time", "session_id", "timestamp"
     ]
 };
 
@@ -433,7 +436,8 @@ async function showDownloadOptions(res, req) {
         const collections = [
             { name: serverConfig.database.phase1_collection, type: 'phase1', label: 'Phase 1 (Image Viewing)' },
             { name: serverConfig.database.phase2_collection, type: 'phase2', label: 'Phase 2 (Memory & Valuation)' },
-            { name: serverConfig.database.final_collection, type: 'final_questionnaire', label: 'Final Questionnaire' }
+            { name: serverConfig.database.final_collection, type: 'final_questionnaire', label: 'Final Questionnaire' },
+            { name: serverConfig.database.attention_check_collection, type: 'attention_checks', label: 'Attention Checks' }
         ];
         
         let collectionCounts = {};
@@ -600,6 +604,14 @@ async function showDownloadOptions(res, req) {
                         <div class="record-count">${collectionCounts.final_questionnaire} records available</div>
                     </div>
                     
+                    <div class="download-section">
+                        <div class="section-title">${collections[3].label}</div>
+                        <a href="${downloadBase}/download/attention_checks${passwordParam}" class="download-button" ${collectionCounts.attention_checks === 0 ? 'style="background: #ccc; pointer-events: none;"' : ''}>
+                            🎯 Download Attention Checks
+                        </a>
+                        <div class="record-count">${collectionCounts.attention_checks} records available</div>
+                    </div>
+                    
                     <div class="total-summary">
                         <strong>Total Records: ${Object.values(collectionCounts).reduce((a, b) => a + b, 0)}</strong>
                         <br>
@@ -652,6 +664,11 @@ async function serveCsvResults(res, collectionType) {
                 collectionName = serverConfig.database.final_collection;
                 fieldsToInclude = ["participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"];
                 filename = `${serverConfig.csv.filename_prefix}_final_questionnaire_${new Date().toISOString().split('T')[0]}.csv`;
+                break;
+            case 'attention_checks':
+                collectionName = serverConfig.database.attention_check_collection;
+                fieldsToInclude = ["participant_id", "phase", "attention_check_id", "question_text", "attention_response", "correct_answer", "is_correct", "response_time", "session_id", "timestamp"];
+                filename = `${serverConfig.csv.filename_prefix}_attention_checks_${new Date().toISOString().split('T')[0]}.csv`;
                 break;
             default:
                 return res.status(400).send('Invalid collection type');
@@ -797,6 +814,8 @@ app.post('/api/save', async (req, res) => {
             collectionName = serverConfig.database.phase2_collection;
         } else if (collection === 'final_questionnaire') {
             collectionName = serverConfig.database.final_collection;
+        } else if (collection === 'attention_checks') {
+            collectionName = serverConfig.database.attention_check_collection;
         } else {
             // Default to phase2 for backward compatibility
             collectionName = serverConfig.database.phase2_collection;
@@ -806,8 +825,8 @@ app.post('/api/save', async (req, res) => {
         let entries = [];
         let errors = [];
 
-        if (format === 'json' && (collection === 'phase1' || collection === 'phase2')) {
-            // Handle JSON format for phase1 and phase2
+        if (format === 'json' && (collection === 'phase1' || collection === 'phase2' || collection === 'attention_checks')) {
+            // Handle JSON format for phase1, phase2, and attention_checks
             console.log(`Processing ${collection} JSON data`);
             
             if (!Array.isArray(data)) {
@@ -842,6 +861,21 @@ app.post('/api/save', async (req, res) => {
                         payment_response: parseFloat(entry.payment_response) || 0,
                         confidence: parseFloat(entry.confidence) || null,
                         response_time: parseFloat(entry.response_time) || null,
+                        timestamp: entry.timestamp || new Date().toISOString(),
+                        server_timestamp: new Date()
+                    };
+                } else if (collection === 'attention_checks') {
+                    // Attention checks: structured data with validation fields
+                    cleanEntry = {
+                        participant_id: entry.participant_id || '',
+                        phase: parseInt(entry.phase) || 1,
+                        attention_check_id: entry.attention_check_id || '',
+                        question_text: entry.question_text || '',
+                        attention_response: entry.attention_response || '',
+                        correct_answer: entry.correct_answer || '',
+                        is_correct: Boolean(entry.is_correct),
+                        response_time: parseFloat(entry.response_time) || null,
+                        session_id: entry.session_id || '',
                         timestamp: entry.timestamp || new Date().toISOString(),
                         server_timestamp: new Date()
                     };
@@ -883,6 +917,18 @@ app.post('/api/save', async (req, res) => {
                     if ((!entry.memory_response || entry.memory_response === '') && 
                         (!entry.payment_response || entry.payment_response === 0)) {
                         console.warn(`Filtering out phase2 entry ${index + 1}: missing response data`);
+                        return false;
+                    }
+                }
+                
+                // For attention_checks: ensure we have required fields
+                if (collection === 'attention_checks') {
+                    if (!entry.attention_check_id || entry.attention_check_id === '') {
+                        console.warn(`Filtering out attention check entry ${index + 1}: missing attention_check_id`);
+                        return false;
+                    }
+                    if (!entry.attention_response || entry.attention_response === '') {
+                        console.warn(`Filtering out attention check entry ${index + 1}: missing attention_response`);
                         return false;
                     }
                 }

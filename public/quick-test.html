@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Image Test</title>
+</head>
+<body>
+    <h1>Testing the Fixed Image</h1>
+    <div id="result"></div>
+    
+    <script>
+        const filename = '40.+Ina+Garten+Parmesan+Chive+Smashed+Potatoes+MD+NEW.jpg';
+        const encodedPath = 'images/new-images/' + encodeURIComponent(filename);
+        
+        console.log('Testing filename:', filename);
+        console.log('Encoded path:', encodedPath);
+        
+        const img = new Image();
+        img.onload = function() {
+            document.getElementById('result').innerHTML = `
+                <h2 style="color: green;">✅ SUCCESS!</h2>
+                <p>Image loaded successfully: ${filename}</p>
+                <img src="${encodedPath}" style="max-width: 400px; border: 2px solid green;">
+            `;
+            console.log('✅ Image loaded successfully!');
+        };
+        
+        img.onerror = function() {
+            document.getElementById('result').innerHTML = `
+                <h2 style="color: red;">❌ FAILED!</h2>
+                <p>Failed to load: ${filename}</p>
+                <p>Tried path: ${encodedPath}</p>
+            `;
+            console.log('❌ Image failed to load');
+        };
+        
+        img.src = encodedPath;
+    </script>
+</body>
+</html>

@@ -4,7 +4,8 @@
             "name": "image_valuation",
             "phase1_collection": "phase1",
             "phase2_collection": "phase2",
-            "final_collection": "final_questionnaire"
+            "final_collection": "final_questionnaire",
+            "attention_check_collection": "attention_checks"
         },
         "csv": {
             "filename_prefix": "image-valuation",
@@ -19,14 +20,14 @@
     },
     "experimentConfig": {
         "phase1": {
-            "largeCount": 38,
-            "smallCount": 38,
+            "largeCount": 2,
+            "smallCount": 2,
 
             "imageSource": "old-images"
         },
         "phase2": {
-            "oldImagesCount": 76,
-            "newImagesCount": 76,
+            "oldImagesCount": 4,
+            "newImagesCount": 4,
             "newImageSource": "new-images"
         },
         "imageDisplayDuration": 2000,
@@ -43,7 +44,7 @@
             },
             "phase2": {
                 "count": 3,
-                "positions": [40, 80, 120]
+                "positions": [1, 2, 6]
             }
         }
     },

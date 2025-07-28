@@ -68,6 +68,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             const phase1Data = [];
             const phase2Data = [];
             const finalData = [];
+            const attentionCheckData = [];
 
             allData.forEach(row => {
                 if (typeof row === 'string' && row.trim()) {
@@ -84,13 +85,18 @@ Object.assign(ImageValuationExperiment.prototype, {
                     else if (columns[1] === 'final_questionnaire') {
                         finalData.push(row);
                     }
+                    // Attention checks: entry_type is 'attention_check'
+                    else if (columns[1] === 'attention_check') {
+                        attentionCheckData.push(row);
+                    }
                 }
             });
 
             console.log('Data separation results:', {
                 phase1Count: phase1Data.length,
                 phase2Count: phase2Data.length,
-                finalCount: finalData.length
+                finalCount: finalData.length,
+                attentionCheckCount: attentionCheckData.length
             });
 
             // Save to each collection separately
@@ -128,6 +134,37 @@ Object.assign(ImageValuationExperiment.prototype, {
                 };
             };
 
+            // Helper to convert attention check CSV rows to JSON objects
+            const convertAttentionCheckToJSON = (row) => {
+                const columns = this.parseCSVRow(row);
+                const attentionCheckId = columns[11] || '';
+                
+                // Find the question details from the attention check questions
+                let questionText = '';
+                let correctAnswer = '';
+                
+                if (this.attentionCheckQuestions && attentionCheckId) {
+                    const question = this.attentionCheckQuestions.find(q => q.id == attentionCheckId);
+                    if (question) {
+                        questionText = question.prompt || '';
+                        correctAnswer = question.correct_answer || '';
+                    }
+                }
+                
+                return {
+                    participant_id: columns[0] || '',
+                    phase: parseInt(columns[2]) || 1,
+                    attention_check_id: attentionCheckId,
+                    question_text: questionText,
+                    attention_response: columns[12] || '',
+                    correct_answer: correctAnswer,
+                    is_correct: columns[13] === 'true' || columns[13] === true,
+                    response_time: parseFloat(columns[10]) || null,
+                    session_id: columns[20] || '',
+                    timestamp: columns[21] || new Date().toISOString()
+                };
+            };
+
             // Save Phase 1 data as JSON objects
             if (phase1Data.length > 0) {
                 const phase1JSON = phase1Data.map(convertPhase1ToJSON);
@@ -145,6 +182,16 @@ Object.assign(ImageValuationExperiment.prototype, {
                     this.saveToCollection('phase2', phase2JSON)
                         .then(() => ({ collection: 'phase2', success: true, count: phase2Data.length }))
                         .catch(err => ({ collection: 'phase2', success: false, error: err.message }))
+                );
+            }
+
+            // Save attention check data as JSON objects
+            if (attentionCheckData.length > 0) {
+                const attentionCheckJSON = attentionCheckData.map(convertAttentionCheckToJSON);
+                savePromises.push(
+                    this.saveToCollection('attention_checks', attentionCheckJSON)
+                        .then(() => ({ collection: 'attention_checks', success: true, count: attentionCheckData.length }))
+                        .catch(err => ({ collection: 'attention_checks', success: false, error: err.message }))
                 );
             }
 
@@ -170,7 +217,8 @@ Object.assign(ImageValuationExperiment.prototype, {
                 success: true,
                 phase1Count: phase1Data.length,
                 phase2Count: phase2Data.length,
-                finalCount: finalData.length
+                finalCount: finalData.length,
+                attentionCheckCount: attentionCheckData.length
             };
         } catch (err) {
             return { success: false, error: err.message };
@@ -180,8 +228,8 @@ Object.assign(ImageValuationExperiment.prototype, {
     async saveToCollection(collection, data) {
         let requestBody;
         
-        if (collection === 'phase1' || collection === 'phase2') {
-            // For phase1 and phase2, send JSON array of objects
+        if (collection === 'phase1' || collection === 'phase2' || collection === 'attention_checks') {
+            // For phase1, phase2, and attention_checks, send JSON array of objects
             requestBody = JSON.stringify({ 
                 data: data, // data is already an array of JSON objects
                 collection: collection,
