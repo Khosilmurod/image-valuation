@@ -41,6 +41,9 @@ class ImageValuationExperiment {
         this.preloadedImages = {};
         this.imagesLoaded = false;
         
+        // Phase 1 size tracking for Phase 2 analysis
+        this.phase1ImageSizes = new Map(); // Maps image.id to size ('large' or 'small')
+        
         console.log(`Experiment initialized with session ID: ${this.sessionId}`);
     }
 

@@ -720,7 +720,7 @@ body {
 .size-reference-container {
     position: relative;
     display: inline-block;
-    margin: 0 60px 60px 60px; /* Extra space for reference lines */
+    margin: 0 100px 100px 100px; /* Extra space for extended reference lines and text */
 }
 
 .size-reference-line {
@@ -751,6 +751,23 @@ body {
     text-orientation: mixed;
 }
 
+/* Scale bar styling for Phase 1 */
+.scale-bar {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 14px;
+    color: #666;
+    font-family: Arial, sans-serif;
+    font-weight: 500;
+}
+
+/* Dimension lines - industry standard style */
+.dimension-text-bg, .dimension-text-side-bg {
+    font-family: Arial, sans-serif;
+    line-height: 1;
+    white-space: nowrap;
+}
+
 /* Responsive adjustments for size reference lines */
 @media (max-width: 768px) {
     .size-reference-container {
@@ -767,6 +784,11 @@ body {
     
     .size-reference-text {
         font-size: 10px;
+    }
+    
+    .scale-bar {
+        font-size: 12px;
+        margin: 15px 0;
     }
 }
 
@@ -785,6 +807,11 @@ body {
     
     .size-reference-text {
         font-size: 9px;
+    }
+    
+    .scale-bar {
+        font-size: 11px;
+        margin: 12px 0;
     }
 } 
 

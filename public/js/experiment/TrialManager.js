@@ -65,15 +65,17 @@ Object.assign(ImageValuationExperiment.prototype, {
                     <div style="text-align: center;">
                         <div class="size-reference-container">
                             ${imageElement}
-                            <!-- Horizontal reference lines -->
-                            <div class="size-reference-line horizontal" style="left: -40px; top: 0;"></div>
-                            <div class="size-reference-line horizontal" style="left: -40px; bottom: 0;"></div>
-                            <div class="size-reference-text vertical" style="left: -45px; top: 50%; transform: translateY(-50%);">10 cm</div>
+                            <!-- Bottom dimension line (industry standard) -->
+                            <div class="dimension-line-vertical-left" style="position: absolute; left: 0; bottom: -60px; width: 1px; height: 20px; background: #333;"></div>
+                            <div class="dimension-line-vertical-right" style="position: absolute; right: 0; bottom: -60px; width: 1px; height: 20px; background: #333;"></div>
+                            <div class="dimension-line-horizontal" style="position: absolute; left: 0; right: 0; bottom: -50px; height: 1px; background: #333;"></div>
+                            <div class="dimension-text-bg" style="position: absolute; bottom: -58px; left: 50%; transform: translateX(-50%); background: white; padding: 0 8px; font-size: 12px; color: #333; font-weight: 500;">10 cm</div>
                             
-                            <!-- Vertical reference lines -->
-                            <div class="size-reference-line vertical" style="left: 0; bottom: -40px;"></div>
-                            <div class="size-reference-line vertical" style="right: 0; bottom: -40px;"></div>
-                            <div class="size-reference-text" style="bottom: -45px; left: 50%; transform: translateX(-50%);">10 cm</div>
+                            <!-- Side dimension line (proper rotated version of bottom one) -->
+                            <div class="dimension-line-horizontal-top" style="position: absolute; top: 0; left: -60px; width: 20px; height: 1px; background: #333;"></div>
+                            <div class="dimension-line-horizontal-bottom" style="position: absolute; bottom: 0; left: -60px; width: 20px; height: 1px; background: #333;"></div>
+                            <div class="dimension-line-vertical-side" style="position: absolute; top: 0; bottom: 0; left: -50px; width: 1px; background: #333;"></div>
+                            <div class="dimension-text-side-bg" style="position: absolute; left: -50px; top: 50%; transform: translateY(-50%) translateX(-50%) rotate(-90deg); background: white; padding: 0 8px; font-size: 12px; color: #333; font-weight: 500; z-index: 10;">10 cm</div>
                         </div>
                         <div style="margin-top: 20px; font-size: 16px; color: #888;">Image ${imageNumber} of ${totalImages}</div>
                     </div>
@@ -141,6 +143,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                               // image_id
             '',                               // filename
             '',                               // image_size
+            '',                               // phase1_size
             '',                               // image_type
             '',                               // memory_response
             '',                               // payment_response
@@ -166,6 +169,9 @@ Object.assign(ImageValuationExperiment.prototype, {
     recordPhase1ImageData(image) {
         const displayDuration = Date.now() - this.imageDisplayStartTime;
         
+        // Store the image size for Phase 2 reference
+        this.phase1ImageSizes.set(image.id, image.size);
+        
         // Record Phase 1 image viewing data
         const phase1Row = [
             this.subjectId || 'unknown',      // participant_id
@@ -174,6 +180,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             image.id,                         // image_id
             this.escapeCSVField(image.filename), // filename (escaped)
             image.size,                       // image_size
+            '',                               // phase1_size (not applicable for phase1)
             '',                               // image_type (not relevant for phase 1)
             '',                               // memory_response
             '',                               // payment_response
@@ -268,12 +275,12 @@ Object.assign(ImageValuationExperiment.prototype, {
                             <div style="margin-bottom: 0; text-align: center;">
                                 <p style="font-weight: 600; margin-bottom: 12px; font-size: 17px; color: #222;">How much are you willing to pay for the item?</p>
                                 <div style="margin: 0.1rem 0; width: 100%;">
-                                    <input type="range" id="paymentSlider" min="0" max="4" value="2" step="0.25"
+                                    <input type="range" id="paymentSlider" min="0" max="400" value="200" step="1"
                                            style="width: 100%; accent-color: #1976d2; height: 4px; margin-bottom: 8px;" onchange="experiment.updatePayment(this.value)">
                                     <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 0.1rem; color: #555;">
-                                        <span>$0</span>
+                                        <span>$0.00</span>
                                         <span id="paymentValue">$2.00</span>
-                                        <span>$4</span>
+                                        <span>$4.00</span>
                                     </div>
                                 </div>
                             </div>
@@ -306,7 +313,7 @@ Object.assign(ImageValuationExperiment.prototype, {
                 
             // Set initial values
             this.currentConfidence = 50;
-            this.currentPaymentResponse = 2;
+            this.currentPaymentResponse = 200; // 200 cents = $2.00
         } else if (step.type === 'attention') {
             this.showPhase2AttentionCheck(step.attentionIndex);
         }
@@ -364,6 +371,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                               // image_id
             '',                               // filename
             '',                               // image_size
+            '',                               // phase1_size
             '',                               // image_type
             '',                               // memory_response
             '',                               // payment_response
@@ -408,42 +416,37 @@ Object.assign(ImageValuationExperiment.prototype, {
         const image = step.image;
         const responseTime = (Date.now() - this.imageQuestionStartTime) / 1000;
         
-        // === DEBUG LOGGING ===
-        console.log('=== PHASE2 RESPONSE DEBUG ===');
-        console.log('Current phase2TimelineIndex:', this.phase2TimelineIndex);
-        console.log('Recording phase2 response for image:', image);
-        console.log('Total phase1Images loaded:', this.phase1Images?.length || 0);
-        console.log('Total phase2Images loaded:', this.phase2Images?.length || 0);
-        console.log('Phase1 image IDs:', this.phase1Images?.map(img => img.id) || []);
-        console.log('Phase2 image IDs:', this.phase2Images?.map(img => img.id) || []);
-        
-        // Determine image type based on whether it was shown in phase1
+        // Determine image type and phase1_size based on whether it was shown in phase1
         let imageType;
+        let phase1Size = 'not_shown_in_phase1'; // Default for images not shown in Phase 1
+        
         const isOldImage = this.phase1Images.some(p1img => p1img.id === image.id);
         if (isOldImage) {
             imageType = 'old';
-            console.log('✓ Identified as OLD image (was in phase1)');
+            phase1Size = this.phase1ImageSizes.get(image.id) || 'unknown_size';
         } else {
             imageType = 'new';
-            console.log('✓ Identified as NEW image (not in phase1)');
         }
         
+        // === DEBUG LOGGING ===
+        console.log('=== PHASE2 RESPONSE DEBUG ===');
+        console.log('Recording phase2 response for image:', image);
         console.log('Final image type:', imageType);
-        console.log('Memory response:', memoryResponse.value);
-        console.log('Payment response:', parseFloat(paymentSlider.value));
-        console.log('Confidence:', this.currentConfidence);
+        console.log('Phase1 size:', phase1Size);
+        console.log('=== END PHASE2 DEBUG ===');
         
-        // Save response data in the requested CSV format
-        const csvRow = [
+        // Build CSV row array first
+        const csvRowArray = [
             this.subjectId || 'unknown',      // participant_id
             'phase2_response',                // entry_type
             2,                                // phase
             image.id,                         // image_id
             this.escapeCSVField(image.filename), // filename (escaped)
             image.size,                       // image_size
+            phase1Size,                       // phase1_size
             imageType,                        // image_type
             this.escapeCSVField(memoryResponse.value), // memory_response (escaped)
-            parseFloat(paymentSlider.value),  // payment_response
+            (this.currentPaymentResponse / 100).toFixed(2), // payment_response (convert cents to dollars)
             this.currentConfidence,           // confidence
             responseTime.toFixed(3),          // response_time
             '',                               // attention_check_id
@@ -457,11 +460,12 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                               // eating_capacity
             this.sessionId || '',             // session_id
             new Date().toISOString()          // timestamp
-        ].join(',') + '\n';
+        ];
         
-        console.log('Generated CSV row:', csvRow);
+        // Join to create CSV row
+        const csvRow = csvRowArray.join(',') + '\n';
+        
         this.csvData.push(csvRow);
-        console.log('csvData after phase2 push:', this.csvData);
         this.phase2TimelineIndex++;
         this.showNextPhase2Step();
     },
@@ -473,10 +477,10 @@ Object.assign(ImageValuationExperiment.prototype, {
     },
 
     updatePayment(value) {
-        this.currentPaymentResponse = parseFloat(value);
+        this.currentPaymentResponse = parseInt(value); // Store as cents
         this.paymentInteracted = true;
-        // Format to show 2 decimal places for better readability
-        const formattedValue = parseFloat(value).toFixed(2);
-        document.getElementById('paymentValue').textContent = '$' + formattedValue;
+        // Convert cents to dollars for display (e.g., 200 cents = $2.00)
+        const dollarValue = (parseInt(value) / 100).toFixed(2);
+        document.getElementById('paymentValue').textContent = '$' + dollarValue;
     }
 }); 

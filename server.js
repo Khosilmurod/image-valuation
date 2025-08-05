@@ -26,10 +26,10 @@ try {
 // Add this near the top of the file, after serverConfig is loaded
 const allowedFields = {
     phase1: [
-        "participant_id", "phase", "image_id", "filename", "image_size", "response_time", "session_id", "timestamp"
+        "participant_id", "phase", "image_id", "filename", "image_size", "phase1_size", "response_time", "session_id", "timestamp"
     ],
     phase2: [
-        "participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"
+        "participant_id", "phase", "image_id", "filename", "image_size", "phase1_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"
     ],
     final_questionnaire: [
         "participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"
@@ -652,12 +652,12 @@ async function serveCsvResults(res, collectionType) {
         switch (collectionType) {
             case 'phase1':
                 collectionName = serverConfig.database.phase1_collection;
-                fieldsToInclude = ["participant_id", "phase", "image_id", "filename", "image_size", "response_time", "session_id", "timestamp"];
+                fieldsToInclude = ["participant_id", "phase", "image_id", "filename", "image_size", "phase1_size", "response_time", "session_id", "timestamp"];
                 filename = `${serverConfig.csv.filename_prefix}_phase1_${new Date().toISOString().split('T')[0]}.csv`;
                 break;
             case 'phase2':
                 collectionName = serverConfig.database.phase2_collection;
-                fieldsToInclude = ["participant_id", "phase", "image_id", "filename", "image_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"];
+                fieldsToInclude = ["participant_id", "phase", "image_id", "filename", "image_size", "phase1_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"];
                 filename = `${serverConfig.csv.filename_prefix}_phase2_${new Date().toISOString().split('T')[0]}.csv`;
                 break;
             case 'final_questionnaire':
@@ -854,13 +854,14 @@ app.post('/api/save', async (req, res) => {
                         server_timestamp: new Date()
                     };
                 } else if (collection === 'phase2') {
-                    // Phase2: only the needed fields (no attention check columns)
+                    // Phase2: all required fields including phase1_size
                     cleanEntry = {
                         participant_id: entry.participant_id || '',
                         phase: parseInt(entry.phase) || 2,
                         image_id: parseInt(entry.image_id) || null,
                         filename: entry.filename || '',
                         image_size: entry.image_size || '',
+                        phase1_size: entry.phase1_size || '',
                         image_type: entry.image_type || '',
                         memory_response: entry.memory_response || '',
                         payment_response: parseFloat(entry.payment_response) || 0,

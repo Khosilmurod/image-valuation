@@ -102,7 +102,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             // Save to each collection separately
             const savePromises = [];
 
-            // Helper to convert phase1 CSV rows to JSON objects with only the 7 required fields
+            // Helper to convert phase1 CSV rows to JSON objects with the required fields
             const convertPhase1ToJSON = (row) => {
                 const columns = this.parseCSVRow(row);
                 return {
@@ -111,33 +111,44 @@ Object.assign(ImageValuationExperiment.prototype, {
                     image_id: parseInt(columns[3]) || null,
                     filename: columns[4] || '',
                     image_size: columns[5] || '',
-                    response_time: parseFloat(columns[10]) || null,
-                    timestamp: columns[21] || new Date().toISOString()
+                    phase1_size: columns[6] || '',
+                    response_time: parseFloat(columns[11]) || null,
+                    timestamp: columns[22] || new Date().toISOString()
                 };
             };
 
             // Helper to convert phase2 CSV rows to JSON objects with only the needed fields
             const convertPhase2ToJSON = (row) => {
                 const columns = this.parseCSVRow(row);
-                return {
+                
+                // Handle phase1_size field properly
+                let phase1SizeValue = columns[6] || 'empty';
+                if (phase1SizeValue === '' || phase1SizeValue === undefined || phase1SizeValue === null) {
+                    phase1SizeValue = 'empty';
+                }
+                
+                const jsonObj = {
                     participant_id: columns[0] || '',
                     phase: parseInt(columns[2]) || 2,
                     image_id: parseInt(columns[3]) || null,
                     filename: columns[4] || '',
                     image_size: columns[5] || '',
-                    image_type: columns[6] || '',
-                    memory_response: columns[7] || '',
-                    payment_response: columns[8] || '',
-                    confidence: parseFloat(columns[9]) || null,
-                    response_time: parseFloat(columns[10]) || null,
-                    timestamp: columns[21] || new Date().toISOString()
+                    phase1_size: phase1SizeValue,
+                    image_type: columns[7] || '',
+                    memory_response: columns[8] || '',
+                    payment_response: columns[9] || '',
+                    confidence: parseFloat(columns[10]) || null,
+                    response_time: parseFloat(columns[11]) || null,
+                    timestamp: columns[22] || new Date().toISOString()
                 };
+                
+                return jsonObj;
             };
 
             // Helper to convert attention check CSV rows to JSON objects
             const convertAttentionCheckToJSON = (row) => {
                 const columns = this.parseCSVRow(row);
-                const attentionCheckId = columns[11] || '';
+                const attentionCheckId = columns[12] || '';
                 
                 // Find the question details from the attention check questions
                 let questionText = '';
@@ -156,12 +167,12 @@ Object.assign(ImageValuationExperiment.prototype, {
                     phase: parseInt(columns[2]) || 1,
                     attention_check_id: attentionCheckId,
                     question_text: questionText,
-                    attention_response: columns[12] || '',
+                    attention_response: columns[13] || '',
                     correct_answer: correctAnswer,
-                    is_correct: columns[13] === 'true' || columns[13] === true,
-                    response_time: parseFloat(columns[10]) || null,
-                    session_id: columns[20] || '',
-                    timestamp: columns[21] || new Date().toISOString()
+                    is_correct: columns[14] === 'true' || columns[14] === true,
+                    response_time: parseFloat(columns[11]) || null,
+                    session_id: columns[21] || '',
+                    timestamp: columns[22] || new Date().toISOString()
                 };
             };
 
@@ -330,9 +341,9 @@ Object.assign(ImageValuationExperiment.prototype, {
                         columns[3], // image_id
                         columns[4], // filename
                         columns[5], // image_size
-                        columns[10], // response_time
-                        columns[20], // session_id
-                        columns[21]  // timestamp
+                        columns[11], // response_time
+                        columns[21], // session_id
+                        columns[22]  // timestamp
                     ].join(',') + '\n';
                 } else if (entryType === 'phase2_response') {
                     // Only keep relevant fields for phase2
@@ -342,26 +353,27 @@ Object.assign(ImageValuationExperiment.prototype, {
                         columns[3], // image_id
                         columns[4], // filename
                         columns[5], // image_size
-                        columns[6], // image_type
-                        columns[7], // memory_response
-                        columns[8], // payment_response
-                        columns[9], // confidence
-                        columns[10], // response_time
-                        columns[20], // session_id
-                        columns[21]  // timestamp
+                        columns[6], // phase1_size
+                        columns[7], // image_type
+                        columns[8], // memory_response
+                        columns[9], // payment_response
+                        columns[10], // confidence
+                        columns[11], // response_time
+                        columns[21], // session_id
+                        columns[22]  // timestamp
                     ].join(',') + '\n';
                 } else if (entryType === 'final_questionnaire') {
                     // Only keep relevant fields for final_questionnaire
                     filteredRow = [
                         columns[0], // participant_id
-                        columns[14], // snack_preference
-                        columns[15], // desire_to_eat
-                        columns[16], // hunger
-                        columns[17], // fullness
-                        columns[18], // satisfaction
-                        columns[19], // eating_capacity
-                        columns[20], // session_id
-                        columns[21]  // timestamp
+                        columns[15], // snack_preference
+                        columns[16], // desire_to_eat
+                        columns[17], // hunger
+                        columns[18], // fullness
+                        columns[19], // satisfaction
+                        columns[20], // eating_capacity
+                        columns[21], // session_id
+                        columns[22]  // timestamp
                     ].join(',') + '\n';
                 }
 

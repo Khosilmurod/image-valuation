@@ -11,7 +11,7 @@
             "filename_prefix": "image-valuation",
             "headers": [
                 "participant_id", "entry_type", "phase", "image_id", "filename", 
-                "image_size", "image_type", "memory_response", "payment_response", 
+                "image_size", "phase1_size", "image_type", "memory_response", "payment_response", 
                 "confidence", "response_time", "attention_check_id", "attention_response", 
                 "attention_correct", "snack_preference", "desire_to_eat", "hunger", 
                 "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"

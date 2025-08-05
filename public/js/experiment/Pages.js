@@ -241,7 +241,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             eatingCapacity: parseInt(capacityValue)
         };
 
-        // Add final questionnaire row to csvData (22-column format matching CSV headers)
+        // Add final questionnaire row to csvData (23-column format matching CSV headers)
         const row = [
             this.subjectId || 'unknown',       // participant_id
             'final_questionnaire',             // entry_type
@@ -249,6 +249,7 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                                // image_id
             '',                                // filename
             '',                                // image_size
+            '',                                // phase1_size
             '',                                // image_type
             '',                                // memory_response
             '',                                // payment_response
