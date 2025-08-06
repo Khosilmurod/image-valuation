@@ -240,16 +240,28 @@ Object.assign(ImageValuationExperiment.prototype, {
             this.currentConfidence = null;
             this.sliderInteracted = false;
             this.paymentInteracted = false;
+            
+            console.log('🔍 PHASE 2 IMAGE SIZE DEBUG:');
+            console.log('Image object:', image);
+            console.log('Image size property:', image.size);
+            console.log('Config imageSizes:', this.experimentConfig.imageSizes);
+            
             const imageSize = this.experimentConfig.imageSizes[image.size];
-            const imageFolder = image.isOld ? 'old-images' : 'new-images';
+            console.log('Resolved imageSize:', imageSize);
+            console.log('Should be 520px for all Phase 2 images');
+            
+            const imageFolder = image.isOld ? 'old-images' : this.experimentConfig.phase2.newImageSource;
+            console.log('Image folder:', imageFolder);
+            console.log('Image isOld:', image.isOld);
             
             // Calculate image number (exclude attention checks)
             const imageNumber = this.phase2Timeline.slice(0, this.phase2TimelineIndex + 1).filter(s => s.type === 'image').length;
             const totalImages = this.phase2Images.length;
             
-            // Get preloaded image element
+            // Get preloaded image element with consistent sizing
             const imagePath = `images/${imageFolder}/${encodeURIComponent(image.filename)}`;
-            const imageStyle = `max-width: ${imageSize}; max-height: ${imageSize};`;
+            // Use fixed width/height with object-fit to ensure consistent visual size
+            const imageStyle = `width: ${imageSize}; height: ${imageSize}; object-fit: contain; object-position: center;`;
             const imageElement = this.getImageElement(imagePath, `Food image ${image.id}`, imageStyle);
             
             document.body.innerHTML = `

@@ -28,7 +28,7 @@
         "phase2": {
             "oldImagesCount": 76,
             "newImagesCount": 76,
-            "newImageSource": "new-images"
+            "newImageSource": "new-images-final-cropped"
         },
         "imageDisplayDuration": 2000,
         "imageSizes": {
