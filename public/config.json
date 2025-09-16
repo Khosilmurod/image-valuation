@@ -20,13 +20,13 @@
     },
     "experimentConfig": {
         "phase1": {
-            "largeCount": 5, 
-            "smallCount": 5,
+            "largeCount": 38, 
+            "smallCount": 38,
             "imageSource": "old-images"
         },
         "phase2": {
-            "oldImagesCount": 5,
-            "newImagesCount": 5,
+            "oldImagesCount": 76,
+            "newImagesCount": 76,
             "newImageSource": "new-images-final-cropped"
         },
         "imageDisplayDuration": 2000,
@@ -39,11 +39,11 @@
             "enabled": true,
             "phase1": {
                 "count": 2,
-                "positions": [3, 5]
+                "positions": [19, 38, 57, 76]
             },
             "phase2": {
                 "count": 2,
-                "positions": [3, 8]
+                "positions": [38, 76, 114, 152]
             }
         }
     },
