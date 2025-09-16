@@ -372,8 +372,10 @@ Object.assign(ImageValuationExperiment.prototype, {
                         columns[18], // fullness
                         columns[19], // satisfaction
                         columns[20], // eating_capacity
-                        columns[21], // session_id
-                        columns[22]  // timestamp
+                        columns[21], // food_allergies
+                        columns[22], // food_allergies_other
+                        columns[23], // session_id
+                        columns[24]  // timestamp
                     ].join(',') + '\n';
                 }
 

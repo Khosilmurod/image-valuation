@@ -158,6 +158,8 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                               // fullness
             '',                               // satisfaction
             '',                               // eating_capacity
+            '',                               // food_allergies
+            '',                               // food_allergies_other
             this.sessionId || '',             // session_id
             new Date().toISOString()          // timestamp
         ].join(',') + '\n';
@@ -194,7 +196,9 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                               // hunger
             '',                               // fullness
             '',                               // satisfaction
-            '',                               // eating_capacity
+            '',                               // eating_capacity 
+            '',                               // food_allergies
+            '',                               // food_allergies_other
             this.sessionId || '',             // session_id
             new Date().toISOString()          // timestamp
         ].join(',') + '\n';
@@ -398,6 +402,8 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                               // fullness
             '',                               // satisfaction
             '',                               // eating_capacity
+            '',                               // food_allergies
+            '',                               // food_allergies_other
             this.sessionId || '',             // session_id
             new Date().toISOString()          // timestamp
         ].join(',') + '\n';
@@ -470,6 +476,8 @@ Object.assign(ImageValuationExperiment.prototype, {
             '',                               // fullness
             '',                               // satisfaction
             '',                               // eating_capacity
+            '',                               // food_allergies
+            '',                               // food_allergies_other
             this.sessionId || '',             // session_id
             new Date().toISOString()          // timestamp
         ];

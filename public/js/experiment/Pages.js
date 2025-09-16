@@ -196,13 +196,77 @@ Object.assign(ImageValuationExperiment.prototype, {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Food Allergies -->
+                        <div style="margin-bottom: 2rem;">
+                            <p style="font-weight: bold; margin-bottom: 1rem; text-align: center;">Do you have any food allergies (Check All That Apply)</p>
+                            <div id="foodAllergiesContainer" style="max-width: 400px; margin: 0 auto; text-align: left;">
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" id="noAllergies" name="food_allergies" value="none" style="margin-right: 0.5rem;"> No known food allergies</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="dairy" style="margin-right: 0.5rem;"> Milk / Dairy</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="eggs" style="margin-right: 0.5rem;"> Eggs</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="peanuts" style="margin-right: 0.5rem;"> Peanuts</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="tree_nuts" style="margin-right: 0.5rem;"> Tree nuts (e.g., almonds, walnuts, cashews)</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="wheat" style="margin-right: 0.5rem;"> Wheat / Gluten</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="soy" style="margin-right: 0.5rem;"> Soy</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="fish" style="margin-right: 0.5rem;"> Fish (e.g., salmon, tuna, cod)</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="shellfish" style="margin-right: 0.5rem;"> Shellfish (e.g., shrimp, crab, lobster)</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="sesame" style="margin-right: 0.5rem;"> Sesame</label>
+                                <label style="display: block; margin-bottom: 0.5rem; padding: 0.3rem;"><input type="checkbox" name="food_allergies" value="other" style="margin-right: 0.5rem;"> Other (please specify): 
+                                    <input type="text" id="otherAllergies" placeholder="Please specify" style="margin-left: 0.5rem; padding: 4px; border: 1px solid #ddd; border-radius: 2px; width: 150px;">
+                                </label>
+                            </div>
+                        </div>
+
                     </div>
-                    
+
                     <button onclick="experiment.submitFinalQuestions()" class="next-button" id="submitBtn">
                         Complete Experiment
                     </button>
                 </div>
             </div>`;
+        this.setupFoodAllergyLogic();
+    },
+
+    setupFoodAllergyLogic() {
+        const noAllergiesBox = document.getElementById('noAllergies');
+        const otherCheckboxes = document.querySelectorAll('input[name="food_allergies"]:not(#noAllergies)');
+        const otherText = document.getElementById('otherAllergies');
+        
+        // Handle "No known allergies" checkbox
+        noAllergiesBox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                otherCheckboxes.forEach(box => {
+                    box.checked = false;
+                    box.disabled = true;
+                    box.parentElement.style.opacity = '0.5';
+                });
+                otherText.disabled = true;
+                otherText.value = '';
+                otherText.style.opacity = '0.5';
+            } else {
+                otherCheckboxes.forEach(box => {
+                    box.disabled = false;
+                    box.parentElement.style.opacity = '1';
+                });
+                otherText.disabled = false;
+                otherText.style.opacity = '1';
+            }
+        });
+        
+        // Handle other allergy checkboxes
+        otherCheckboxes.forEach(box => {
+            box.addEventListener('change', () => {
+                const anyOtherChecked = Array.from(otherCheckboxes).some(checkbox => checkbox.checked);
+                if (anyOtherChecked) {
+                    noAllergiesBox.checked = false;
+                    noAllergiesBox.disabled = true;
+                    noAllergiesBox.parentElement.style.opacity = '0.5';
+                } else {
+                    noAllergiesBox.disabled = false;
+                    noAllergiesBox.parentElement.style.opacity = '1';
+                }
+            });
+        });
     },
 
     submitFinalQuestions() {
@@ -219,6 +283,31 @@ Object.assign(ImageValuationExperiment.prototype, {
         const fullnessValue = document.getElementById('fullnessSlider').value;
         const satisfactionValue = document.getElementById('satisfactionSlider').value;
         const capacityValue = document.getElementById('capacitySlider').value;
+        // Get food allergies
+        const foodAllergies = [];
+        const checkedBoxes = document.querySelectorAll('input[name="food_allergies"]:checked');
+        checkedBoxes.forEach(checkbox => {
+            foodAllergies.push(checkbox.value);
+        });
+
+        let otherAllergies = '';
+        const otherAllergiesInput = document.getElementById('otherAllergies');
+        if (otherAllergiesInput && !otherAllergiesInput.disabled) {
+            otherAllergies = otherAllergiesInput.value.trim();
+        }
+
+        // Validate food allergies - at least one must be selected
+        if (foodAllergies.length === 0) {
+            alert('Please select at least one option for food allergies');
+            return;
+        }
+
+        // If "other" is selected, ensure they specified what
+        if (foodAllergies.includes('other') && !otherAllergies) {
+            alert('Please specify your other food allergies');
+            otherAllergiesInput.focus();
+            return;
+        }
 
         // Check if all sliders are still at default (50) - this might indicate user didn't interact
         const defaultValues = [desireValue, hungerValue, fullnessValue, satisfactionValue, capacityValue];
@@ -238,7 +327,9 @@ Object.assign(ImageValuationExperiment.prototype, {
             hunger: parseInt(hungerValue),
             fullness: parseInt(fullnessValue),
             satisfaction: parseInt(satisfactionValue),
-            eatingCapacity: parseInt(capacityValue)
+            eatingCapacity: parseInt(capacityValue),
+            foodAllergies: this.escapeCSVField(foodAllergies.join('; ')),
+            foodAllergiesOther: otherAllergies
         };
 
         // Add final questionnaire row to csvData (23-column format matching CSV headers)
@@ -264,6 +355,8 @@ Object.assign(ImageValuationExperiment.prototype, {
             this.finalAnswers.fullness,        // fullness
             this.finalAnswers.satisfaction,    // satisfaction
             this.finalAnswers.eatingCapacity,  // eating_capacity
+            this.finalAnswers.foodAllergies,   // food_allergies
+            this.finalAnswers.foodAllergiesOther, // food_allergies_other
             this.sessionId || '',              // session_id
             new Date().toISOString()           // timestamp
         ].join(',') + '\n';

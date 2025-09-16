@@ -14,20 +14,19 @@
                 "image_size", "phase1_size", "image_type", "memory_response", "payment_response", 
                 "confidence", "response_time", "attention_check_id", "attention_response", 
                 "attention_correct", "snack_preference", "desire_to_eat", "hunger", 
-                "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"
+                "fullness", "satisfaction", "eating_capacity", "food_allergies", "food_allergies_other", "session_id", "timestamp"
             ]
         }
     },
     "experimentConfig": {
         "phase1": {
-            "largeCount": 38,
-            "smallCount": 38,
-
+            "largeCount": 5, 
+            "smallCount": 5,
             "imageSource": "old-images"
         },
         "phase2": {
-            "oldImagesCount": 76,
-            "newImagesCount": 76,
+            "oldImagesCount": 5,
+            "newImagesCount": 5,
             "newImageSource": "new-images-final-cropped"
         },
         "imageDisplayDuration": 2000,
@@ -39,12 +38,12 @@
         "attentionChecks": {
             "enabled": true,
             "phase1": {
-                "count": 4,
-                "positions": [19, 38, 57, 76]
+                "count": 2,
+                "positions": [3, 5]
             },
             "phase2": {
-                "count": 4,
-                "positions": [38, 76, 114, 152]
+                "count": 2,
+                "positions": [3, 8]
             }
         }
     },
@@ -77,9 +76,9 @@
             "id": 4,
             "type": "multi-choice",
             "prompt": "How many days are in a week?",
-            "instruction": "Please select '7' regardless of the truth.",
+            "instruction": "Please select '5' regardless of the truth.",
             "options": ["5", "6", "7", "8", "9"],
-            "correct_answer": "7"
+            "correct_answer": "5"
         },
         {
             "id": 5,

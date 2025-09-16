@@ -1,8 +1,13 @@
 require('dotenv').config();
+console.log('Dotenv loaded...');
 const { MongoClient } = require('mongodb');
+console.log('Mongo loaded...');
 const express = require('express');
+console.log('express loaded...');
 const fs = require('fs');
+console.log('fs loaded...');
 const path = require('path');
+console.log('path loaded...');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -22,6 +27,7 @@ try {
     console.error('Error loading server configuration:', error);
     process.exit(1);
 }
+console.log('server config loaded...');
 
 // Add this near the top of the file, after serverConfig is loaded
 const allowedFields = {
@@ -32,7 +38,7 @@ const allowedFields = {
         "participant_id", "phase", "image_id", "filename", "image_size", "phase1_size", "image_type", "memory_response", "payment_response", "confidence", "response_time", "session_id", "timestamp"
     ],
     final_questionnaire: [
-        "participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"
+        "participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "food_allergies", "food_allergies_other", "session_id", "timestamp"
     ],
     attention_checks: [
         "participant_id", "phase", "attention_check_id", "question_text", "attention_response", "correct_answer", "is_correct", "response_time", "session_id", "timestamp"
@@ -662,7 +668,7 @@ async function serveCsvResults(res, collectionType) {
                 break;
             case 'final_questionnaire':
                 collectionName = serverConfig.database.final_collection;
-                fieldsToInclude = ["participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "session_id", "timestamp"];
+                fieldsToInclude = ["participant_id", "snack_preference", "desire_to_eat", "hunger", "fullness", "satisfaction", "eating_capacity", "food_allergies", "food_allergies_other", "session_id", "timestamp"];
                 filename = `${serverConfig.csv.filename_prefix}_final_questionnaire_${new Date().toISOString().split('T')[0]}.csv`;
                 break;
             case 'attention_checks':
@@ -1136,6 +1142,7 @@ async function connectToDb() {
     console.log(`Using database: ${serverConfig.database.name}`);
 }
 
+console.log('About to connect to MongoDB...');
 connectToDb().then(() => {
     app.listen(port, () => {
         console.log(`Server running at http://localhost:${port}`);
