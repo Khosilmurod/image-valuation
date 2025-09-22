@@ -230,6 +230,14 @@ Object.assign(ImageValuationExperiment.prototype, {
         this.showNextPhase2Step();
     },
 
+    // Generate random initial values for sliders 
+    generateRandomSliderValues() {
+        return {
+            payment: Math.floor(Math.random() * 401),   // 0-400 cents ($0.00-$4.00)
+            confidence: Math.floor(Math.random() * 101) // 0-100
+        };
+    },
+
     showNextPhase2Step() {
         if (this.phase2TimelineIndex >= this.phase2Timeline.length) {
             this.showFinalQuestionsPage();
@@ -244,6 +252,9 @@ Object.assign(ImageValuationExperiment.prototype, {
             this.currentConfidence = null;
             this.sliderInteracted = false;
             this.paymentInteracted = false;
+
+            // Generate random initial slider values
+            const randomValues = this.generateRandomSliderValues();
             
             console.log('🔍 PHASE 2 IMAGE SIZE DEBUG:');
             console.log('Image object:', image);
@@ -291,11 +302,13 @@ Object.assign(ImageValuationExperiment.prototype, {
                             <div style="margin-bottom: 0; text-align: center;">
                                 <p style="font-weight: 600; margin-bottom: 12px; font-size: 17px; color: #222;">How much are you willing to pay for the item?</p>
                                 <div style="margin: 0.1rem 0; width: 100%;">
-                                    <input type="range" id="paymentSlider" min="0" max="400" value="200" step="1"
-                                           style="width: 100%; accent-color: #1976d2; height: 4px; margin-bottom: 8px;" onchange="experiment.updatePayment(this.value)">
+                                    <input type="range" id="paymentSlider" min="0" max="400" value="${randomValues.payment}" step="1"
+                                           style="width: 100%; accent-color: #1976d2; height: 4px; margin-bottom: 8px;" 
+                                           onchange="experiment.updatePayment(this.value)" 
+                                           oninput="experiment.updatePayment(this.value)">
                                     <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 0.1rem; color: #555;">
                                         <span>$0.00</span>
-                                        <span id="paymentValue">$2.00</span>
+                                        <span id="paymentValue">$${(randomValues.payment / 100).toFixed(2)}</span>
                                         <span>$4.00</span>
                                     </div>
                                 </div>
@@ -306,11 +319,13 @@ Object.assign(ImageValuationExperiment.prototype, {
                                     On a scale of 0–100, how confident are you in your willingness-to-pay choice?
                                 </p>
                                 <div style="margin: 0.1rem 0; width: 100%;">
-                                    <input type="range" id="confidenceSlider" min="0" max="100" value="50" 
-                                           style="width: 100%; accent-color: #1976d2; height: 4px; margin-bottom: 8px;" onchange="experiment.updateConfidence(this.value)">
+                                    <input type="range" id="confidenceSlider" min="0" max="100" value="${randomValues.confidence}" 
+                                           style="width: 100%; accent-color: #1976d2; height: 4px; margin-bottom: 8px;" 
+                                           onchange="experiment.updateConfidence(this.value)"
+                                           oninput="experiment.updateConfidence(this.value)">
                                     <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 0.1rem; color: #555;">
                                         <span>0 (Not confident)</span>
-                                        <span id="confidenceValue">50</span>
+                                        <span id="confidenceValue">${randomValues.confidence}</span>
                                         <span>100 (Very confident)</span>
                                     </div>
                                 </div>
@@ -327,9 +342,9 @@ Object.assign(ImageValuationExperiment.prototype, {
                     </div>
                 </div>`;
                 
-            // Set initial values
-            this.currentConfidence = 50;
-            this.currentPaymentResponse = 200; // 200 cents = $2.00
+            // Set initial values to the random values (but don't mark as interacted yet)
+            this.currentConfidence = randomValues.confidence;
+            this.currentPaymentResponse = randomValues.payment;
         } else if (step.type === 'attention') {
             this.showPhase2AttentionCheck(step.attentionIndex);
         }
